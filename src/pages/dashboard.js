@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '@clerk/nextjs';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, BarChart2, Eye, MousePointer2, Settings, Share2, Globe, FileEdit, BadgeCheck, Zap, Layers, TrendingUp, Lock, ShieldCheck, Info } from 'lucide-react';
+import { Plus, BarChart2, Eye, MousePointer2, Settings, Share2, Globe, FileEdit, BadgeCheck, Zap, Layers, TrendingUp, Lock, ShieldCheck, Info, Users, Download, Filter } from 'lucide-react';
 
 export default function Dashboard() {
     const router = useRouter();
@@ -18,6 +18,9 @@ export default function Dashboard() {
     const [myListings, setMyListings] = useState([]);
     const [bidsForMe, setBidsForMe] = useState([]);
     const [myPurchases, setMyPurchases] = useState([]);
+    const [leads, setLeads] = useState([]);
+    const [leadsLoading, setLeadsLoading] = useState(false);
+    const [selectedLeadStatus, setSelectedLeadStatus] = useState('all');
 
     const fetchData = async () => {
         if (!isLoaded || !userId) return;
@@ -40,6 +43,11 @@ export default function Dashboard() {
                 setBidsForMe(marketData.bids);
             }
             if (purchasesData.success) setMyPurchases(purchasesData.data);
+
+            // Fetch leads for Pro users
+            if (subData.success && (subData.data.plan === 'pro' || subData.data.plan === 'enterprise')) {
+                fetchLeads();
+            }
         } catch (error) {
             console.error('Failed to fetch dashboard data', error);
         } finally {
@@ -50,6 +58,51 @@ export default function Dashboard() {
     useEffect(() => {
         fetchData();
     }, [isLoaded, userId]);
+
+    const fetchLeads = async () => {
+        setLeadsLoading(true);
+        try {
+            const res = await fetch('/api/leads');
+            const data = await res.json();
+            if (data.success) {
+                setLeads(data.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch leads', error);
+        } finally {
+            setLeadsLoading(false);
+        }
+    };
+
+    const updateLeadStatus = async (leadId, newStatus) => {
+        try {
+            const res = await fetch('/api/leads', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ leadId, status: newStatus })
+            });
+            if (res.ok) {
+                setLeads(leads.map(lead => lead._id === leadId ? { ...lead, status: newStatus } : lead));
+            }
+        } catch (error) {
+            console.error('Failed to update lead status', error);
+        }
+    };
+
+    const exportLeads = async () => {
+        try {
+            const res = await fetch('/api/leads/export');
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `leads-export-${Date.now()}.csv`;
+            a.click();
+        } catch (error) {
+            console.error('Failed to export leads', error);
+            alert('Failed to export leads');
+        }
+    };
 
     const togglePublish = async (id, currentStatus) => {
         try {
@@ -540,6 +593,155 @@ export default function Dashboard() {
                     </div>
                 )}
             </div>
+
+            {/* Lead Management Section (Pro Only) */}
+            {(sub.plan === 'pro' || sub.plan === 'enterprise') && leads.length > 0 && (
+                <div className="container" style={{ marginTop: '5rem' }}>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="glass-card"
+                        style={{ padding: '3rem', background: 'rgba(255,215,0,0.02)', border: '1px solid rgba(255,215,0,0.1)' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                                <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <Users size={28} className="gold-text" />
+                                    Lead Management
+                                </h2>
+                                <p style={{ color: '#71717a', fontSize: '0.95rem' }}>
+                                    {leads.length} total leads • {leads.filter(l => l.status === 'new').length} new
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                <select
+                                    value={selectedLeadStatus}
+                                    onChange={(e) => setSelectedLeadStatus(e.target.value)}
+                                    style={{
+                                        padding: '0.75rem 1.25rem',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '12px',
+                                        color: 'white',
+                                        fontSize: '0.9rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <option value="all">All Leads</option>
+                                    <option value="new">New</option>
+                                    <option value="contacted">Contacted</option>
+                                    <option value="converted">Converted</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                                <button
+                                    onClick={exportLeads}
+                                    style={{
+                                        padding: '0.75rem 1.5rem',
+                                        background: '#FFD700',
+                                        color: '#000',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        fontSize: '0.9rem',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    <Download size={18} />
+                                    Export CSV
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0.5rem' }}>
+                                <thead>
+                                    <tr style={{ color: '#71717a', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                        <th style={{ textAlign: 'left', padding: '1rem' }}>Campaign</th>
+                                        <th style={{ textAlign: 'left', padding: '1rem' }}>Name</th>
+                                        <th style={{ textAlign: 'left', padding: '1rem' }}>Contact</th>
+                                        <th style={{ textAlign: 'left', padding: '1rem' }}>Source</th>
+                                        <th style={{ textAlign: 'left', padding: '1rem' }}>Date</th>
+                                        <th style={{ textAlign: 'left', padding: '1rem' }}>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {leads
+                                        .filter(lead => selectedLeadStatus === 'all' || lead.status === selectedLeadStatus)
+                                        .map((lead) => (
+                                            <tr
+                                                key={lead._id}
+                                                style={{
+                                                    background: 'rgba(255,255,255,0.02)'
+                                                }}
+                                            >
+                                                <td style={{ padding: '1.25rem 1rem', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }}>
+                                                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{lead.adId?.title || 'Unknown'}</div>
+                                                    <div style={{ fontSize: '0.7rem', color: '#71717a', marginTop: '0.25rem' }}>{lead.adId?.slug}</div>
+                                                </td>
+                                                <td style={{ padding: '1.25rem 1rem' }}>
+                                                    <div style={{ fontWeight: 600 }}>{lead.leadData?.name || '-'}</div>
+                                                    {lead.leadData?.company && (
+                                                        <div style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem' }}>{lead.leadData.company}</div>
+                                                    )}
+                                                </td>
+                                                <td style={{ padding: '1.25rem 1rem' }}>
+                                                    <div style={{ fontSize: '0.85rem' }}>{lead.leadData?.email || '-'}</div>
+                                                    {lead.leadData?.phone && (
+                                                        <div style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem' }}>{lead.leadData.phone}</div>
+                                                    )}
+                                                </td>
+                                                <td style={{ padding: '1.25rem 1rem' }}>
+                                                    <span style={{
+                                                        padding: '0.35rem 0.75rem',
+                                                        background: lead.source === 'ar_view' ? 'rgba(255,215,0,0.1)' : 'rgba(59,130,246,0.1)',
+                                                        color: lead.source === 'ar_view' ? '#FFD700' : '#3b82f6',
+                                                        borderRadius: '8px',
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 800,
+                                                        textTransform: 'uppercase'
+                                                    }}>
+                                                        {lead.source === 'ar_view' ? 'AR' : lead.source === 'feed_view' ? 'Feed' : 'Embed'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '1.25rem 1rem', fontSize: '0.85rem', color: '#a1a1aa' }}>
+                                                    {new Date(lead.createdAt).toLocaleDateString()}
+                                                </td>
+                                                <td style={{ padding: '1.25rem 1rem', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }}>
+                                                    <select
+                                                        value={lead.status}
+                                                        onChange={(e) => updateLeadStatus(lead._id, e.target.value)}
+                                                        style={{
+                                                            padding: '0.5rem 0.75rem',
+                                                            background: lead.status === 'new' ? 'rgba(59,130,246,0.1)' :
+                                                                lead.status === 'contacted' ? 'rgba(251,191,36,0.1)' :
+                                                                    lead.status === 'converted' ? 'rgba(16,185,129,0.1)' : 'rgba(107,114,128,0.1)',
+                                                            color: lead.status === 'new' ? '#3b82f6' :
+                                                                lead.status === 'contacted' ? '#fbbf24' :
+                                                                    lead.status === 'converted' ? '#10b981' : '#6b7280',
+                                                            border: 'none',
+                                                            borderRadius: '8px',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 700,
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        <option value="new">New</option>
+                                                        <option value="contacted">Contacted</option>
+                                                        <option value="converted">Converted</option>
+                                                        <option value="archived">Archived</option>
+                                                    </select>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
 
             {/* List for Sale Modal */}
             <AnimatePresence>

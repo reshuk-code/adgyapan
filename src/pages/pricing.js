@@ -63,9 +63,12 @@ export default function Pricing() {
             name: 'Pro',
             price: 'NPR 1999',
             period: '/yr',
-            description: 'Power tools for creators and growing brands.',
+            description: 'Turn scans into sales leads with advanced conversion tools.',
             features: [
                 'Unlimited AR Campaigns',
+                'Lead Capture Forms',
+                'Webhook Integrations',
+                'Access to Marketplace',
                 'Deep Geospatial Analytics',
                 'Retention & Attention Stats',
                 'Custom Interactive CTAs',

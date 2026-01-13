@@ -26,6 +26,8 @@ export default function Marketplace() {
 
     // KYC & Wallet State
     const [kycData, setKycData] = useState({ status: 'loading', balance: 0 });
+    const [subscription, setSubscription] = useState(null);
+    const [subLoading, setSubLoading] = useState(true);
     const [step, setStep] = useState(1);
     const [enrollmentData, setEnrollmentData] = useState({
         legalName: '',
@@ -40,10 +42,25 @@ export default function Marketplace() {
 
     useEffect(() => {
         if (userId) {
+            fetchSubscription();
             fetchKycStatus();
             fetchListings();
         }
     }, [userId]);
+
+    const fetchSubscription = async () => {
+        try {
+            const res = await fetch('/api/subscriptions/me');
+            const data = await res.json();
+            if (data.success) {
+                setSubscription(data.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch subscription', error);
+        } finally {
+            setSubLoading(false);
+        }
+    };
 
     const fetchKycStatus = async () => {
         try {
@@ -197,6 +214,102 @@ export default function Marketplace() {
                     style={{ color: '#FFD700' }}
                 >
                     <CircleDashed size={40} strokeWidth={1} />
+                </motion.div>
+            </div>
+        );
+    }
+
+    // --- PRO-ONLY GATE ---
+    if (!subLoading && subscription && subscription.plan !== 'pro' && subscription.plan !== 'enterprise') {
+        return (
+            <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+                <LuxuryBackground />
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    style={{
+                        position: 'relative',
+                        zIndex: 10,
+                        maxWidth: '600px',
+                        width: '100%',
+                        textAlign: 'center',
+                        background: 'rgba(0,0,0,0.8)',
+                        backdropFilter: 'blur(20px)',
+                        padding: '4rem 3rem',
+                        borderRadius: '32px',
+                        border: '1px solid rgba(255,215,0,0.2)',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+                    }}
+                >
+                    <div style={{
+                        width: '100px',
+                        height: '100px',
+                        borderRadius: '50%',
+                        background: 'rgba(255,215,0,0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 2rem',
+                        border: '2px solid rgba(255,215,0,0.3)'
+                    }}>
+                        <Crown size={50} color="#FFD700" />
+                    </div>
+
+                    <h1 style={{
+                        fontSize: '2.5rem',
+                        fontWeight: 900,
+                        marginBottom: '1rem',
+                        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        letterSpacing: '-1px'
+                    }}>
+                        Marketplace is for Pro Users
+                    </h1>
+
+                    <p style={{
+                        fontSize: '1.1rem',
+                        color: '#a1a1aa',
+                        marginBottom: '3rem',
+                        lineHeight: 1.6
+                    }}>
+                        The Royal Exchange is an exclusive marketplace for buying and selling premium AR campaigns. Upgrade to Pro to access this feature.
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                        {[
+                            'Buy & Sell AR Campaigns',
+                            'KYC-Verified Transactions',
+                            'Secure Wallet System',
+                            'Exclusive Asset Marketplace'
+                        ].map((feature, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center' }}>
+                                <BadgeCheck size={20} color="#10b981" />
+                                <span style={{ fontSize: '0.95rem', color: '#d4d4d8' }}>{feature}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button
+                        onClick={() => router.push('/pricing')}
+                        style={{
+                            width: '100%',
+                            padding: '1.25rem 2rem',
+                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                            color: '#000',
+                            border: 'none',
+                            borderRadius: '16px',
+                            fontSize: '1.1rem',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            boxShadow: '0 10px 30px rgba(255,215,0,0.3)',
+                            transition: 'transform 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.02)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                    >
+                        Upgrade to Pro →
+                    </button>
                 </motion.div>
             </div>
         );

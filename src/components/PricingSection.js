@@ -67,6 +67,7 @@ export default function PricingSection({ showTitle = true }) {
                 'Unlimited AR Campaigns',
                 'Lead Capture Forms',
                 'Webhook Integrations',
+                'Access to Marketplace',
                 'Deep Geospatial Analytics',
                 'Retention & Attention Stats',
                 'Custom Interactive CTAs',
