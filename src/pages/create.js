@@ -150,179 +150,141 @@ export default function CreateCampaign() {
     };
 
     return (
-        <div className="container" style={{ marginTop: '3rem', paddingBottom: '5rem' }}>
+        <div className="container" style={{ paddingTop: '2rem', paddingBottom: '5rem' }}>
             <Script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js" strategy="beforeInteractive" />
 
             <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a1a1aa', marginBottom: '2rem', fontSize: '0.9rem' }}>
-                <ArrowLeft size={16} /> Back to Dashboard
+                <ArrowLeft size={16} /> Dashboard
             </Link>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '3rem', alignItems: 'start' }}>
+                {/* Form Side */}
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-                    <h1>Create AR Experience</h1>
+                    <h1 style={{ marginBottom: '2.5rem', fontSize: 'clamp(2rem, 5vw, 3rem)' }}>Forge Experience</h1>
 
                     {(sub.plan === 'basic' && adCount >= 3) ? (
-                        <div className="glass-card" style={{ padding: '3.5rem', textAlign: 'center', border: '2px solid rgba(245, 158, 11, 0.3)', background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(245, 158, 11, 0.05) 100%)' }}>
+                        <div className="glass-card gold-border" style={{ padding: '3.5rem 2rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255, 215, 0, 0.05) 100%)' }}>
                             <div style={{
-                                width: '80px', height: '80px', borderRadius: '24px', background: 'rgba(245, 158, 11, 0.1)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', margin: '0 auto 2rem auto',
-                                boxShadow: '0 0 30px rgba(245, 158, 11, 0.2)'
+                                width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255, 215, 0, 0.1)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFD700', margin: '0 auto 2rem auto',
+                                boxShadow: '0 0 40px rgba(255, 215, 0, 0.2)'
                             }}>
                                 <Crown size={40} />
                             </div>
-                            <h2 style={{ fontSize: '2.2rem', marginBottom: '1rem' }}>Join the Pro Revolution!</h2>
+                            <h2 style={{ fontSize: '2.2rem', marginBottom: '1rem' }} className="gold-text">Elite Workspace</h2>
                             <p style={{ color: '#a1a1aa', marginBottom: '3rem', fontSize: '1.1rem', lineHeight: '1.6' }}>
-                                You've reached the limit of 3 campaigns on the Basic plan. <br />
-                                <span style={{ color: 'white', fontWeight: 700 }}>Unlock unlimited storytelling</span> and massive reach today.
+                                You've reached the capacity of our basic engine. <br />
+                                <strong style={{ color: 'white' }}>Upgrade to Pro</strong> to unlock unlimited campaigns and advanced AR storytelling.
                             </p>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '3rem', textAlign: 'left' }}>
-                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                    <div style={{ color: '#10b981' }}><PlusCircle size={18} /></div>
-                                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Unlimited Campaigns</span>
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                    <div style={{ color: '#10b981' }}><PlusCircle size={18} /></div>
-                                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Genre Categories</span>
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                    <div style={{ color: '#10b981' }}><PlusCircle size={18} /></div>
-                                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Priority Verification</span>
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                    <div style={{ color: '#10b981' }}><PlusCircle size={18} /></div>
-                                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Advanced Stats</span>
-                                </div>
+                                {[
+                                    { icon: <PlusCircle size={18} />, text: 'Unlimited Slots' },
+                                    { icon: <Zap size={18} />, text: 'High Priority' },
+                                    { icon: <ShieldCheck size={18} />, text: 'No Brand Watermark' },
+                                    { icon: <BarChart2 size={18} />, text: 'Deep Stats' }
+                                ].map((feat, i) => (
+                                    <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                        <div style={{ color: '#10b981' }}>{feat.icon}</div>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>{feat.text}</span>
+                                    </div>
+                                ))}
                             </div>
 
-                            <Link href="/pricing" className="btn btn-primary" style={{ width: '100%', height: '4rem', fontSize: '1.2rem', fontWeight: 1000, boxShadow: '0 10px 40px rgba(254, 44, 85, 0.4)' }}>
-                                Upgrade to Pro Now &rarr;
+                            <Link href="/pricing" className="btn btn-primary" style={{ width: '100%', height: '4rem', fontSize: '1.2rem', background: '#fff', color: '#000' }}>
+                                Unlock Pro Access &rarr;
                             </Link>
                         </div>
                     ) : (
-                        <div className="glass-card" style={{ padding: '2rem' }}>
-                            <div className="form-group">
-                                <label className="label">Campaign Name</label>
+                        <div className="glass-card" style={{ padding: '2.5rem' }}>
+                            <div className="form-group" style={{ marginBottom: '2rem' }}>
+                                <label className="label">Project Identity</label>
                                 <input
                                     type="text"
                                     className="input"
-                                    placeholder="e.g. Cyberpunk 2077 Release"
+                                    placeholder="e.g. Neo-Tokyo Billboard"
                                     value={form.title}
+                                    style={{ fontSize: '1.1rem', padding: '1.25rem' }}
                                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                                 />
                             </div>
 
-                            <div className="form-group">
+                            <div className="form-group" style={{ marginBottom: '2rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
-                                    <label className="label" style={{ marginBottom: 0 }}>Category / Genre</label>
+                                    <label className="label" style={{ marginBottom: 0 }}>Content Category</label>
                                     {sub.plan !== 'pro' && (
-                                        <Link href="/pricing" style={{ fontSize: '0.65rem', color: '#f59e0b', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                            <Crown size={10} /> Pro Feature
+                                        <Link href="/pricing" className="gold-text" style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                            <Lock size={10} style={{ marginRight: '4px' }} /> Pro Only
                                         </Link>
                                     )}
                                 </div>
-                                <div style={{ position: 'relative' }}>
-                                    <select
-                                        className="input"
-                                        value={form.category || 'other'}
-                                        onChange={(e) => setForm({ ...form, category: e.target.value })}
-                                        disabled={sub.plan !== 'pro'}
-                                        style={{
-                                            background: '#18181b',
-                                            color: sub.plan === 'pro' ? 'white' : '#71717a',
-                                            opacity: sub.plan === 'pro' ? 1 : 0.7,
-                                            cursor: sub.plan === 'pro' ? 'pointer' : 'not-allowed',
-                                            paddingRight: '2.5rem'
-                                        }}
-                                    >
-                                        <option value="tech">Tech & Innovation</option>
-                                        <option value="comedy">Comedy & Fun</option>
-                                        <option value="drama">Drama & Story</option>
-                                        <option value="lifestyle">Lifestyle</option>
-                                        <option value="fashion">Fashion & Beauty</option>
-                                        <option value="education">Education</option>
-                                        <option value="entertainment">Entertainment</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                    {sub.plan !== 'pro' && (
-                                        <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#71717a' }}>
-                                            <Lock size={16} />
-                                        </div>
-                                    )}
-                                </div>
+                                <select
+                                    className="input"
+                                    value={form.category || 'other'}
+                                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                                    disabled={sub.plan !== 'pro'}
+                                    style={{
+                                        background: '#0a0a0a',
+                                        cursor: sub.plan === 'pro' ? 'pointer' : 'not-allowed',
+                                        opacity: sub.plan === 'pro' ? 1 : 0.6
+                                    }}
+                                >
+                                    <option value="tech">Innovation</option>
+                                    <option value="luxury">Luxury & Style</option>
+                                    <option value="entertainment">Entertainment</option>
+                                    <option value="education">Educational</option>
+                                    <option value="other">Universal</option>
+                                </select>
                             </div>
 
-                            {sub.plan === 'pro' ? (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1rem' }}>
-                                    <div className="form-group">
-                                        <label className="label">CTA Button Text (Optional)</label>
-                                        <input
-                                            type="text"
-                                            className="input"
-                                            placeholder="e.g. Visit Shop"
-                                            maxLength={20}
-                                            value={form.ctaText}
-                                            onChange={(e) => setForm({ ...form, ctaText: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="label">Destination URL</label>
-                                        <input
-                                            type="url"
-                                            className="input"
-                                            placeholder="https://example.com"
-                                            value={form.ctaUrl}
-                                            onChange={(e) => setForm({ ...form, ctaUrl: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="glass-card" style={{ padding: '1rem', marginBottom: '1.5rem', border: '1px solid rgba(245, 158, 11, 0.2)', background: 'rgba(245, 158, 11, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <Crown size={18} style={{ color: '#f59e0b' }} />
-                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Interactive CTAs are a Pro feature</span>
-                                    </div>
-                                    <Link href="/pricing" style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 900, textTransform: 'uppercase' }}>Upgrade &rarr;</Link>
-                                </div>
-                            )}
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
                                 <div className="form-group">
-                                    <label className="label">Static Target Image</label>
-                                    <label className="input" style={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        padding: '2.5rem 1rem',
-                                        borderStyle: 'dashed',
-                                        cursor: 'pointer'
-                                    }}>
-                                        <Upload size={24} style={{ marginBottom: '0.5rem', color: '#3b82f6' }} />
-                                        <span style={{ fontSize: '0.8rem' }}>{form.image ? form.image.name : 'Choose Image'}</span>
+                                    <label className="label">AR Target</label>
+                                    <label className="input" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1rem', borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+                                        <Maximize size={24} style={{ marginBottom: '0.75rem', color: '#3b82f6' }} />
+                                        <span style={{ fontSize: '0.75rem', textAlign: 'center', opacity: 0.6 }}>{form.image ? form.image.name : 'Target Image'}</span>
                                         <input type="file" hidden accept="image/*" onChange={(e) => handleFileChange(e, 'image')} />
                                     </label>
                                 </div>
                                 <div className="form-group">
-                                    <label className="label">AR Video Overlay</label>
-                                    <label className="input" style={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        padding: '2.5rem 1rem',
-                                        borderStyle: 'dashed',
-                                        cursor: 'pointer'
-                                    }}>
-                                        <Zap size={24} style={{ marginBottom: '0.5rem', color: '#f59e0b' }} />
-                                        <span style={{ fontSize: '0.8rem' }}>{form.video ? form.video.name : 'Choose Video'}</span>
+                                    <label className="label">AR Overlay</label>
+                                    <label className="input" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1rem', borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+                                        <Zap size={24} style={{ marginBottom: '0.75rem', color: '#FFD700' }} />
+                                        <span style={{ fontSize: '0.75rem', textAlign: 'center', opacity: 0.6 }}>{form.video ? form.video.name : 'Experience Video'}</span>
                                         <input type="file" hidden accept="video/*" onChange={(e) => handleFileChange(e, 'video')} />
                                     </label>
                                 </div>
                             </div>
 
+                            {sub.plan === 'pro' && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                                    <div className="form-group">
+                                        <label className="label">CTA Label</label>
+                                        <input
+                                            type="text"
+                                            className="input"
+                                            placeholder="Buy Now"
+                                            value={form.ctaText}
+                                            onChange={(e) => setForm({ ...form, ctaText: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="label">Link URL</label>
+                                        <input
+                                            type="url"
+                                            className="input"
+                                            placeholder="https://..."
+                                            value={form.ctaUrl}
+                                            onChange={(e) => setForm({ ...form, ctaUrl: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             <button
                                 onClick={handleSubmit}
                                 className="btn btn-primary"
-                                style={{ width: '100%', marginTop: '1rem', height: '3.5rem' }}
+                                style={{ width: '100%', height: '4rem', fontSize: '1.1rem', fontWeight: 800 }}
                                 disabled={loading || !form.title || !form.image || !form.video}
                             >
                                 {loading ? (
@@ -335,13 +297,14 @@ export default function CreateCampaign() {
                     )}
                 </motion.div>
 
+                {/* Calibration Side */}
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                    <div className="glass-card" style={{ padding: '1.5rem', height: '100%' }}>
-                        <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Palette size={20} /> Live Calibration
+                    <div className="glass-card" style={{ padding: '2rem' }}>
+                        <h3 style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <Palette size={20} className="gold-text" /> Calibration Hub
                         </h3>
 
-                        <div style={{ background: '#000', borderRadius: '1rem', overflow: 'hidden', position: 'relative', height: '280px', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ background: '#000', borderRadius: '1.5rem', overflow: 'hidden', position: 'relative', height: '320px', marginBottom: '2.5rem', border: '1px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.8)' }}>
                             {previews.image ? (
                                 <>
                                     <img src={previews.image} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -354,53 +317,57 @@ export default function CreateCampaign() {
                                             height: '40%',
                                             transform: `translate(-50%, -50%) translate(${overlay.positionX * 100}%, ${-overlay.positionY * 100}%) rotate(${overlay.rotation}deg) scale(${overlay.scale})`,
                                             opacity: overlay.opacity,
-                                            border: '1px solid #3b82f6',
-                                            boxShadow: '0 0 15px rgba(59, 130, 246, 0.5)',
-                                            pointerEvents: 'none'
+                                            border: '2px solid #FFD700',
+                                            boxShadow: '0 0 30px rgba(255, 215, 0, 0.4)',
+                                            pointerEvents: 'none',
+                                            borderRadius: '4px'
                                         }}>
                                             <video src={previews.video} muted autoPlay loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         </div>
                                     )}
                                 </>
                             ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#3f3f46' }}>
-                                    Preview Unavailable
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#3f3f46', gap: '1rem' }}>
+                                    <Info size={32} opacity={0.3} />
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Awaiting assets...</span>
                                 </div>
                             )}
                         </div>
 
-                        <div className="form-group">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <label className="label">Scale</label>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{overlay.scale.toFixed(1)}x</span>
-                            </div>
-                            <input type="range" className="input-range" min="0.1" max="2" step="0.1" value={overlay.scale} onChange={(e) => setOverlay({ ...overlay, scale: parseFloat(e.target.value) })} />
-                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            {[
+                                { label: 'Scale Factor', key: 'scale', min: 0.1, max: 2, step: 0.1, unit: 'x' },
+                                { label: 'Opacity Alpha', key: 'opacity', min: 0, max: 1, step: 0.1, unit: '%' },
+                                { label: 'Rotation Euler', key: 'rotation', min: 0, max: 360, step: 1, unit: '°' }
+                            ].map((ctrl) => (
+                                <div key={ctrl.key} className="form-group" style={{ marginBottom: 0 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                        <label className="label" style={{ marginBottom: 0 }}>{ctrl.label}</label>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'white' }}>
+                                            {ctrl.key === 'opacity' ? Math.round(overlay[ctrl.key] * 100) : overlay[ctrl.key].toFixed(ctrl.key === 'rotation' ? 0 : 1)}{ctrl.unit}
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        className="input-range"
+                                        min={ctrl.min}
+                                        max={ctrl.max}
+                                        step={ctrl.step}
+                                        value={overlay[ctrl.key]}
+                                        onChange={(e) => setOverlay({ ...overlay, [ctrl.key]: parseFloat(e.target.value) })}
+                                    />
+                                </div>
+                            ))}
 
-                        <div className="form-group">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <label className="label">Transparency</label>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{Math.round(overlay.opacity * 100)}%</span>
-                            </div>
-                            <input type="range" className="input-range" min="0" max="1" step="0.1" value={overlay.opacity} onChange={(e) => setOverlay({ ...overlay, opacity: parseFloat(e.target.value) })} />
-                        </div>
-
-                        <div className="form-group">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <label className="label">Orientation</label>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{overlay.rotation}°</span>
-                            </div>
-                            <input type="range" className="input-range" min="0" max="360" step="1" value={overlay.rotation} onChange={(e) => setOverlay({ ...overlay, rotation: parseInt(e.target.value) })} />
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <div className="form-group">
-                                <label className="label">Offset X</label>
-                                <input type="number" className="input" step="0.05" value={overlay.positionX} onChange={(e) => setOverlay({ ...overlay, positionX: parseFloat(e.target.value) })} />
-                            </div>
-                            <div className="form-group">
-                                <label className="label">Offset Y</label>
-                                <input type="number" className="input" step="0.05" value={overlay.positionY} onChange={(e) => setOverlay({ ...overlay, positionY: parseFloat(e.target.value) })} />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '0.5rem' }}>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                    <label className="label">Spatial X</label>
+                                    <input type="number" className="input" step="0.05" value={overlay.positionX} onChange={(e) => setOverlay({ ...overlay, positionX: parseFloat(e.target.value) })} />
+                                </div>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                    <label className="label">Spatial Y</label>
+                                    <input type="number" className="input" step="0.05" value={overlay.positionY} onChange={(e) => setOverlay({ ...overlay, positionY: parseFloat(e.target.value) })} />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -408,32 +375,38 @@ export default function CreateCampaign() {
             </div>
 
             <style jsx>{`
-            .input-range {
-                width: 100%;
-                -webkit-appearance: none;
-                background: rgba(255,255,255,0.1);
-                height: 4px;
-                border-radius: 2px;
-                outline: none;
-            }
-            .input-range::-webkit-slider-thumb {
-                -webkit-appearance: none;
-                width: 16px;
-                height: 16px;
-                background: #fff;
-                border-radius: 50%;
-                cursor: pointer;
-            }
-            .spinner {
-                width: 1rem;
-                height: 1rem;
-                border: 2px solid rgba(0,0,0,0.1);
-                border-top: 2px solid #000;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-            }
-            @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
+                .input-range {
+                    width: 100%;
+                    -webkit-appearance: none;
+                    background: rgba(255,255,255,0.05);
+                    height: 6px;
+                    border-radius: 10px;
+                    outline: none;
+                }
+                .input-range::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    width: 20px;
+                    height: 20px;
+                    background: #fff;
+                    border: 4px solid #000;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                    transition: transform 0.1s;
+                }
+                .input-range::-webkit-slider-thumb:active {
+                    transform: scale(1.2);
+                }
+                .spinner {
+                    width: 1.25rem;
+                    height: 1.25rem;
+                    border: 3px solid rgba(255,255,255,0.1);
+                    border-top: 3px solid #FFD700;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin { to { transform: rotate(360deg); } }
+            `}</style>
         </div>
     );
 }

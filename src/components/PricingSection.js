@@ -43,8 +43,14 @@ export default function PricingSection({ showTitle = true }) {
         {
             name: 'Starter',
             price: 'Free',
-            description: 'Perfect for individual creators testing WebAR.',
-            features: ['3 Active Campaigns', 'Basic Analytics', 'Standard AR Target', 'Public Feed Visibility'],
+            description: 'Essential AR tools for hobbyists and explorers.',
+            features: [
+                '3 Active AR Campaigns',
+                'Core Engagement Stats',
+                'Community Support',
+                'Standard Model Rendering',
+                'Social Feed Inclusion'
+            ],
             icon: <Zap size={24} className="text-blue-400" />,
             color: 'rgba(59, 130, 246, 0.1)',
             btnText: 'Current Plan',
@@ -55,14 +61,15 @@ export default function PricingSection({ showTitle = true }) {
             name: 'Pro',
             price: 'NPR 1999',
             period: '/yr',
-            description: 'For power users and growing brands.',
+            description: 'Power tools for creators and growing brands.',
             features: [
-                'Unlimited Campaigns',
-                'Advanced 3D Analytics',
-                'Genre Category Tags',
-                'Higher Overlay Quality',
-                'Priority Verification',
-                'Ad-Free Scanning'
+                'Unlimited AR Campaigns',
+                'Deep Geospatial Analytics',
+                'Retention & Attention Stats',
+                'Custom Interactive CTAs',
+                'Golden Verified Badge',
+                'No Branding Watermark',
+                'Priority Verification'
             ],
             icon: <Crown size={24} style={{ color: '#f59e0b' }} />,
             color: 'rgba(245, 158, 11, 0.1)',
@@ -73,13 +80,15 @@ export default function PricingSection({ showTitle = true }) {
         {
             name: 'Enterprise',
             price: 'Custom',
-            description: 'Enterprise-grade AR infrastructure.',
+            description: 'Scale your AR presence globally.',
             features: [
                 'Everything in Pro',
-                'Custom White-labeling',
-                'API & Webhook Access',
-                'Dedicated Account Manager',
-                'Custom MindAR Training'
+                'Custom Marker Training',
+                'No Branding Watermark',
+                'Managed Campaign Setup',
+                'Dedicated Support',
+                'Team Workspace Access',
+                'Bulk verification'
             ],
             icon: <ShieldCheck size={24} style={{ color: '#10b981' }} />,
             color: 'rgba(16, 185, 129, 0.1)',

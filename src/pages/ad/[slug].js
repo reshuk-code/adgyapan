@@ -154,6 +154,29 @@ export default function AdView() {
                     </a-scene>
                 )}
 
+                {/* AR Watermark (Basic Users Only) */}
+                {ad.userPlan !== 'pro' && ad.userPlan !== 'enterprise' && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '20px',
+                        right: '20px',
+                        zIndex: 1000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(0,0,0,0.4)',
+                        backdropFilter: 'blur(8px)',
+                        padding: '6px 12px',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        pointerEvents: 'none',
+                        opacity: 0.8
+                    }}>
+                        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.6)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Made with</span>
+                        <span style={{ fontSize: '0.85rem', color: 'white', fontWeight: 900, letterSpacing: '-0.5px' }}>Adgyapan</span>
+                    </div>
+                )}
+
                 {/* AR CTA Button (Pro Only) */}
                 {showCta && ad.ctaText && ad.userPlan === 'pro' && (
                     <motion.div

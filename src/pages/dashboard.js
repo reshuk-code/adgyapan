@@ -60,136 +60,130 @@ export default function Dashboard() {
     }
 
     return (
-        <div className="container" style={{ marginTop: '3rem', paddingBottom: '5rem' }}>
+        <div className="container" style={{ paddingTop: '2rem', paddingBottom: '5rem' }}>
+            {/* Header / Hero Section */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '4rem' }}
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2rem',
+                    marginBottom: '4rem',
+                    textAlign: 'left'
+                }}
             >
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <h1 style={{ margin: 0, fontSize: '3rem' }}>Dashboard</h1>
-                        {sub.plan === 'pro' && sub.status === 'active' && (
-                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                                <BadgeCheck size={36} fill="#f59e0b" color="black" strokeWidth={1.5} />
-                            </motion.div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <h1 style={{ margin: 0, fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>Workspace</h1>
+                        {sub.plan === 'pro' && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 215, 0, 0.1)', padding: '4px 12px', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.2)' }}>
+                                <BadgeCheck size={18} fill="#FFD700" color="black" />
+                                <span className="gold-text" style={{ fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase' }}>Pro Member</span>
+                            </div>
                         )}
-                        <div style={{
-                            background: sub.plan === 'pro' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.05)',
-                            padding: '0.4rem 1rem',
-                            borderRadius: '2rem',
-                            border: `1px solid ${sub.plan === 'pro' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.1)'}`,
-                            fontSize: '0.8rem',
-                            fontWeight: 800,
-                            textTransform: 'uppercase',
-                            color: sub.plan === 'pro' ? '#f59e0b' : '#a1a1aa',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem'
-                        }}>
-                            {sub.plan} Plan {sub.status === 'pending' && <span style={{ fontSize: '0.7rem', color: '#fbbf24' }}>(Pending)</span>}
-                        </div>
                     </div>
-                    <p style={{ fontSize: '1.1rem' }}>Manage and scale your interactive AR experiences. {sub.plan === 'basic' && <Link href="/pricing" style={{ color: '#fe2c55', fontWeight: 600, marginLeft: '10px' }}>Upgrade to Pro &rarr;</Link>}</p>
+                    <p style={{ fontSize: '1.1rem', maxWidth: '600px', margin: 0 }}>
+                        Design and manage your next-generation AR campaigns from one central cockpit.
+                    </p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <Link href="/settings" className="btn btn-secondary" style={{ gap: '0.5rem', padding: '0.8rem 1.8rem', color: '#a1a1aa' }}>
-                        <Settings size={20} /> Settings
+
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <Link href="/create" className="btn btn-primary" style={{ gap: '0.5rem', background: '#fff', color: '#000', padding: '1rem 2rem' }}>
+                        <Plus size={20} /> Create New
                     </Link>
-                    {sub.plan !== 'basic' && (
-                        <Link
-                            href="/analytics"
-                            className="btn btn-secondary"
-                            style={{
-                                gap: '0.5rem',
-                                padding: '0.8rem 1.8rem',
-                                borderColor: sub.status === 'active' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(255,255,255,0.1)',
-                                color: sub.status === 'active' ? '#f59e0b' : '#71717a',
-                                opacity: sub.status === 'active' ? 1 : 0.7,
-                                pointerEvents: sub.status === 'active' ? 'auto' : 'none'
-                            }}
-                        >
-                            <BarChart2 size={20} />
-                            {sub.status === 'active' ? 'View Analytics' : 'Analytics (Pending)'}
-                        </Link>
-                    )}
-                    <Link href="/create" className="btn btn-primary" style={{ gap: '0.5rem', padding: '0.8rem 1.8rem' }}>
-                        <Plus size={20} /> New Campaign
+                    <Link href="/analytics" className="btn btn-secondary" style={{ gap: '0.5rem', padding: '1rem 2rem' }}>
+                        <BarChart2 size={20} /> Analytics
+                    </Link>
+                    <Link href="/settings" className="btn btn-secondary" style={{ gap: '0.5rem', padding: '1rem 2rem' }}>
+                        <Settings size={20} /> Settings
                     </Link>
                 </div>
             </motion.div>
 
+            {/* Content Section */}
             {ads.length === 0 ? (
-                <div className="glass-card" style={{ padding: '5rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
-                    <h2 style={{ marginBottom: '1rem' }}>Zero Campaigns</h2>
-                    <p style={{ marginBottom: '2rem' }}>Experience the power of WebAR by creating your first interactive ad campaign.</p>
-                    <Link href="/create" className="btn btn-primary">Create Now</Link>
-                </div>
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="glass-card"
+                    style={{ padding: '4rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}
+                >
+                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                        <Globe size={40} style={{ opacity: 0.3 }} />
+                    </div>
+                    <h2 style={{ fontSize: '1.75rem', marginBottom: '1rem' }}>No active campaigns</h2>
+                    <p style={{ marginBottom: '2.5rem' }}>Deploy your first AR experience and start capturing high-quality engagement data.</p>
+                    <Link href="/create" className="btn btn-primary">Get Started</Link>
+                </motion.div>
             ) : (
                 <div className="grid">
                     {ads.map((ad, index) => (
                         <motion.div
                             key={ad._id}
                             className="glass-card"
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            style={{ overflow: 'hidden' }}
+                            transition={{ delay: index * 0.05, duration: 0.5 }}
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'hidden',
+                                border: '1px solid rgba(255,255,255,0.08)'
+                            }}
                         >
-                            <div style={{ position: 'relative', height: '200px', overflow: 'hidden' }}>
+                            {/* Card Image Wrapper */}
+                            <div style={{ position: 'relative', height: '220px', width: '100%' }}>
                                 <img src={ad.imageUrl} alt={ad.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '1rem',
-                                    right: '1rem',
-                                    zIndex: 1
-                                }}>
-                                    <span className={`status-badge ${ad.isPublished ? 'status-live' : 'status-draft'}`}>
+                                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }} />
+
+                                <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+                                    <span className={`status-badge ${ad.isPublished ? 'status-live' : 'status-draft'}`} style={{ backdropFilter: 'blur(10px)' }}>
                                         {ad.isPublished ? 'Live' : 'Draft'}
                                     </span>
                                 </div>
+
+                                <div style={{ position: 'absolute', bottom: '1.25rem', left: '1.25rem', right: '1.25rem' }}>
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'white', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{ad.title}</h3>
+                                </div>
                             </div>
 
-                            <div style={{ padding: '1.5rem' }}>
-                                <h3 style={{ marginBottom: '0.5rem' }}>{ad.title}</h3>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '0.5rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a1a1aa', fontSize: '0.8rem' }}>
-                                            <Eye size={14} /> Views
-                                        </div>
-                                        <div style={{ fontSize: '1.25rem', fontWeight: '700', marginTop: '0.25rem' }}>{ad.viewCount}</div>
+                            {/* Card Content */}
+                            <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.7rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em' }}>Visual Views</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '2px' }}>{ad.viewCount}</div>
                                     </div>
-                                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '0.5rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a1a1aa', fontSize: '0.8rem' }}>
-                                            <MousePointer2 size={14} /> Taps
-                                        </div>
-                                        <div style={{ fontSize: '1.25rem', fontWeight: '700', marginTop: '0.25rem' }}>{ad.hoverCount}</div>
+                                    <div>
+                                        <div style={{ fontSize: '0.7rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em' }}>Interactions</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '2px' }}>{ad.hoverCount}</div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                    <Link href={`/campaign/${ad._id}`} className="btn btn-secondary" style={{ flex: 1, gap: '0.4rem', padding: '0.5rem' }}>
-                                        <Settings size={14} /> Details
-                                    </Link>
-                                    <Link href={`/edit/${ad._id}`} className="btn btn-secondary" style={{ flex: 1, gap: '0.4rem', padding: '0.5rem' }}>
-                                        <FileEdit size={14} /> Edit
+                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
+                                    <Link href={`/edit/${ad._id}`} className="btn btn-secondary" style={{ flex: 1, padding: '0.6rem', fontSize: '0.85rem' }}>
+                                        <FileEdit size={16} style={{ marginRight: '6px' }} /> Edit
                                     </Link>
                                     <button
                                         onClick={() => togglePublish(ad._id, ad.isPublished)}
                                         className="btn btn-secondary"
                                         style={{
+                                            flex: 1,
+                                            padding: '0.6rem',
+                                            fontSize: '0.85rem',
                                             background: ad.isPublished ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
                                             color: ad.isPublished ? '#f87171' : '#4ade80',
                                             borderColor: ad.isPublished ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)',
-                                            flex: 1,
-                                            gap: '0.4rem'
                                         }}
                                     >
-                                        {ad.isPublished ? <Globe size={16} /> : <FileEdit size={16} />}
-                                        {ad.isPublished ? 'Unpublish' : 'Publish'}
+                                        {ad.isPublished ? <Globe size={16} style={{ marginRight: '6px' }} /> : <Globe size={16} style={{ marginRight: '6px' }} />}
+                                        {ad.isPublished ? 'Pause' : 'Go Live'}
                                     </button>
                                 </div>
+                                <Link href={`/campaign/${ad._id}`} style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.85rem', color: '#71717a', textDecoration: 'underline' }}>
+                                    Advanced Statistics &rarr;
+                                </Link>
                             </div>
                         </motion.div>
                     ))}
