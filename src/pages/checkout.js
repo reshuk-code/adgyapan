@@ -89,15 +89,15 @@ export default function Checkout() {
     }
 
     return (
-        <div className="container" style={{ marginTop: '3rem', paddingBottom: '7rem', maxWidth: '1000px' }}>
+        <div className="container" style={{ marginTop: '3rem', paddingBottom: '7rem', maxWidth: '1000px', padding: '3rem 1.5rem 7rem' }}>
             <Link href="/pricing" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a1a1aa', marginBottom: '2rem' }}>
                 <ArrowLeft size={18} /> Back to Pricing
             </Link>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '4rem' }}>
+            <div className="checkout-grid">
                 {/* Left: Payment Options */}
                 <div>
-                    <h1 style={{ marginBottom: '0.5rem' }}>Checkout</h1>
+                    <h1 style={{ marginBottom: '0.5rem', fontSize: 'clamp(2rem, 5vw, 3rem)' }}>Checkout</h1>
                     <p style={{ color: '#71717a', marginBottom: '3rem' }}>Secure your <span style={{ color: 'white', fontWeight: 600 }}>{plan?.toUpperCase()}</span> membership.</p>
 
                     <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>Select Payment Method</h3>
@@ -118,11 +118,12 @@ export default function Checkout() {
                         >
                             <div style={{
                                 width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,255,255,0.1)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: method === 'qr' ? '#fe2c55' : 'white'
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: method === 'qr' ? '#fe2c55' : 'white',
+                                flexShrink: 0
                             }}>
                                 <QrCode size={24} />
                             </div>
-                            <div>
+                            <div style={{ minWidth: 0 }}>
                                 <div style={{ fontWeight: 800 }}>Mobile Banking / Fonepay</div>
                                 <div style={{ fontSize: '0.85rem', color: '#71717a' }}>Instant via QR Scan (Recommended for Nepal)</div>
                             </div>
@@ -143,11 +144,12 @@ export default function Checkout() {
                         >
                             <div style={{
                                 width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                flexShrink: 0
                             }}>
                                 <CreditCard size={24} />
                             </div>
-                            <div>
+                            <div style={{ minWidth: 0 }}>
                                 <div style={{ fontWeight: 800 }}>PayPal <span style={{ marginLeft: '10px', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' }}>COMING SOON</span></div>
                                 <div style={{ fontSize: '0.85rem', color: '#71717a' }}>International Payments</div>
                             </div>
@@ -183,7 +185,7 @@ export default function Checkout() {
                                 <label className="label">Upload Payment Proof</label>
                                 <label className="input" style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer', padding: '1rem' }}>
                                     <Upload size={20} style={{ color: '#fe2c55' }} />
-                                    <span style={{ fontSize: '0.85rem', color: file ? 'white' : '#71717a' }}>{file ? file.name : 'Statement or Screenshot'}</span>
+                                    <span style={{ fontSize: '0.85rem', color: file ? 'white' : '#71717a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file ? file.name : 'Statement or Screenshot'}</span>
                                     <input type="file" hidden accept="image/*" onChange={handleFileChange} />
                                 </label>
                             </div>
@@ -214,7 +216,31 @@ export default function Checkout() {
             </div>
 
             <style jsx>{`
-                .glass-card { background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border-radius: 2rem; }
+                .glass-card { 
+                    background: rgba(255,255,255,0.03); 
+                    backdrop-filter: blur(20px); 
+                    border-radius: 2rem;
+                    border: 1px solid rgba(255,255,255,0.1);
+                }
+                
+                .checkout-grid {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+                    gap: 4rem;
+                }
+
+                @media (max-width: 968px) {
+                    .checkout-grid {
+                        grid-template-columns: 1fr;
+                        gap: 3rem;
+                    }
+                }
+
+                @media (max-width: 640px) {
+                    .checkout-grid {
+                        gap: 2rem;
+                    }
+                }
             `}</style>
         </div>
     );

@@ -12,6 +12,7 @@ export default async function handler(req, res) {
 
     await dbConnect();
     const { userId } = getAuth(req);
+    const { adId } = req.query;
 
     if (!userId) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
         // 1. Gating: Check if Pro
         const sub = await Subscription.findOne({ userId });
 
-        // Admin Bypass (Optional: Add specific Admin IDs here if known)
+        // Admin Bypass
         // const isAdmin = userId === 'admin_id'; 
 
         const isPremium = sub && sub.status === 'active' && (sub.plan === 'pro' || sub.plan === 'enterprise');
@@ -43,15 +44,17 @@ export default async function handler(req, res) {
             });
         }
 
-        // 2. Fetch stats for the last 30 days for all ads owned by this user
+        // 2. Fetch stats for the last 30 days
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-        const stats = await Stat.find({
-            userId: userId,
-            date: { $gte: thirtyDaysAgo }
-        }).sort({ date: 1 });
+        const query = { userId, date: { $gte: thirtyDaysAgo } };
+        if (adId && adId !== 'all') {
+            query.adId = adId;
+        }
+
+        const stats = await Stat.find(query).sort({ date: 1 });
 
         // 3. Aggregate deep analytics
         const aggregatedStats = {};
@@ -63,9 +66,11 @@ export default async function handler(req, res) {
         stats.forEach(s => {
             const dateStr = s.date.toISOString().split('T')[0];
             if (!aggregatedStats[dateStr]) {
-                aggregatedStats[dateStr] = { date: dateStr, views: 0, hovers: 0, clicks: 0 };
+                aggregatedStats[dateStr] = { date: dateStr, views: 0, feedViews: 0, arViews: 0, hovers: 0, clicks: 0 };
             }
             aggregatedStats[dateStr].views += s.views;
+            aggregatedStats[dateStr].feedViews += (s.feedViews || 0);
+            aggregatedStats[dateStr].arViews += (s.arViews || 0);
             aggregatedStats[dateStr].hovers += s.hovers;
             aggregatedStats[dateStr].clicks += s.clicks;
 
@@ -86,14 +91,27 @@ export default async function handler(req, res) {
             });
         });
 
-        // 4. Fetch global totals from Ad model
-        const allAds = await Ad.find({ userId });
-        const totalViews = allAds.reduce((acc, ad) => acc + (ad.viewCount || 0), 0);
+        // 4. Fetch totals (Filtered or Global)
+        const adQuery = { userId };
+        if (adId && adId !== 'all') {
+            adQuery._id = adId;
+        }
+
+        const summaryAds = await Ad.find(adQuery);
+        // Also fetch ALL ads for the dropdown selector
+        const dropdownAds = await Ad.find({ userId }).select('_id title imageUrl category').lean();
+
+        const totalViews = summaryAds.reduce((acc, ad) => acc + (ad.viewCount || 0), 0);
         const summary = {
-            totalAds: allAds.length,
+            totalAds: summaryAds.length, // If filtered, this is 1
             totalViews,
-            totalHovers: allAds.reduce((acc, ad) => acc + (ad.hoverCount || 0), 0),
-            totalClicks: allAds.reduce((acc, ad) => acc + (ad.clickCount || 0), 0),
+            totalFeedViews: summaryAds.reduce((acc, ad) => acc + (ad.feedViewCount || 0), 0),
+            totalArViews: summaryAds.reduce((acc, ad) => acc + (ad.arViewCount || 0), 0),
+            totalHovers: summaryAds.reduce((acc, ad) => acc + (ad.hoverCount || 0), 0),
+            totalClicks: summaryAds.reduce((acc, ad) => acc + (ad.clickCount || 0), 0),
+            totalLikes: summaryAds.reduce((acc, ad) => acc + (ad.likes || 0), 0),
+            totalComments: summaryAds.reduce((acc, ad) => acc + (ad.comments?.length || 0), 0), // Basic count
+            totalShares: summaryAds.reduce((acc, ad) => acc + (ad.shares || 0), 0),
             avgScreenTime: totalViews > 0 ? (totalScreenTime / totalViews).toFixed(1) : 0
         };
 
@@ -106,7 +124,8 @@ export default async function handler(req, res) {
                     countries: Object.entries(countryStats).map(([code, count]) => ({ code, count })),
                     cities: Object.entries(cityStats).map(([name, count]) => ({ name, count }))
                 },
-                summary
+                summary,
+                ads: dropdownAds
             }
         });
     } catch (error) {

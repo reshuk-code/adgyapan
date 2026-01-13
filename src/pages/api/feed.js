@@ -1,7 +1,9 @@
 
 import dbConnect from '@/lib/db';
 import Ad from '@/models/Ad';
+import Profile from '@/models/Profile';
 import Subscription from '@/models/Subscription';
+import { getAuth } from '@clerk/nextjs/server';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -12,6 +14,32 @@ export default async function handler(req, res) {
 
     try {
         const { category } = req.query;
+        const { userId } = getAuth(req);
+
+        let interestBranches = [];
+        if (userId) {
+            const userProfile = await Profile.findOne({ userId });
+            if (userProfile && userProfile.interestScores) {
+                // Convert Map to array of branches for $switch
+                // profiles.interestScores is a Map in Mongoose, so toObject() or get() might be needed if it's not a POJO.
+                // Safest to access it via .get() if it's a Map, but here we can iterate.
+                // actually mongoose Map becomes a POJO when using lean() or usually accessible. 
+                // Let's assume it behaves like a Map or Object.
+
+                // Mongoose Map: userProfile.get('interestScores') -> Map
+                const scores = userProfile.interestScores instanceof Map
+                    ? Object.fromEntries(userProfile.interestScores)
+                    : userProfile.interestScores;
+
+                if (scores) {
+                    interestBranches = Object.entries(scores).map(([cat, score]) => ({
+                        case: { $eq: ['$category', cat] },
+                        then: score
+                    }));
+                }
+            }
+        }
+
         const query = { isPublished: true };
         if (category && category !== 'all') {
             query.category = category;
@@ -48,17 +76,28 @@ export default async function handler(req, res) {
                                 }
                             }
                         }
+                    },
+                    interestScore: {
+                        $switch: {
+                            branches: interestBranches,
+                            default: 0
+                        }
                     }
                 }
             },
             {
                 $addFields: {
                     sortWeight: {
-                        $cond: {
-                            if: { $eq: ['$userPlan', 'pro'] },
-                            then: 10,
-                            else: 0
-                        }
+                        $add: [
+                            {
+                                $cond: {
+                                    if: { $eq: ['$userPlan', 'pro'] },
+                                    then: 10,
+                                    else: 0
+                                }
+                            },
+                            '$interestScore' // Add the interest score to the weight
+                        ]
                     }
                 }
             },
@@ -69,7 +108,7 @@ export default async function handler(req, res) {
                 }
             },
             { $limit: 25 },
-            { $project: { sub: 0, sortWeight: 0 } }
+            { $project: { sub: 0, sortWeight: 0, interestScore: 0 } }
         ]);
 
         // Hydrate all users (commenters, repliers) with their current plan

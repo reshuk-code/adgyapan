@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Ad from '@/models/Ad';
 import Stat from '@/models/Stat';
 import Profile from '@/models/Profile';
+import { getAuth } from '@clerk/nextjs/server';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -13,21 +14,29 @@ export default async function handler(req, res) {
 
     const { slug, type, duration, source = 'ar' } = req.body; // source: 'ar' or 'feed'
 
-    if (!slug || !['view', 'hover', 'click', 'screenTime'].includes(type)) {
+    console.log(`[TRACK] Request: type=${type}, slug=${slug}, source=${source}`);
+
+    if (!slug || !['view', 'hover', 'click', 'screenTime', 'interest'].includes(type)) {
         return res.status(400).json({ success: false, error: 'Invalid data' });
     }
 
     try {
         const ad = await Ad.findOne({ slug });
 
-        if (!ad) return res.status(404).json({ success: false, error: 'Ad not found' });
+        if (!ad) {
+            console.log('[TRACK] Ad not found for slug:', slug);
+            return res.status(404).json({ success: false, error: 'Ad not found' });
+        }
 
         // Check user's analytics preference
         const profile = await Profile.findOne({ userId: ad.userId });
         const countBothViews = profile?.countBothViews === true; // Default to false (AR-only)
 
+        console.log(`[TRACK] Ad Owner: ${ad.userId}, CountBothViews: ${countBothViews}`);
+
         // Skip tracking if source is 'feed' and user only wants AR views
         if (source === 'feed' && !countBothViews) {
+            console.log('[TRACK] Skipped: Feed view but user wants AR-only');
             return res.status(200).json({ success: true, message: 'Tracking skipped per user preference' });
         }
 
@@ -40,7 +49,23 @@ export default async function handler(req, res) {
         const updateQuery = {};
         const globalUpdate = {};
 
-        if (type === 'screenTime') {
+        if (type === 'interest') {
+            const { userId } = getAuth(req);
+            if (userId && ad.category) {
+                const { action } = req.body;
+                let score = 0;
+                if (action === 'stay_5s') score = 3;
+                if (action === 'profile_visit') score = 2;
+
+                if (score > 0) {
+                    await Profile.findOneAndUpdate(
+                        { userId },
+                        { $inc: { [`interestScores.${ad.category}`]: score } }
+                    );
+                }
+            }
+            return res.status(200).json({ success: true });
+        } else if (type === 'screenTime') {
             updateQuery.$inc = { totalScreenTime: duration || 0 };
         } else {
             const globalField = type === 'view' ? 'viewCount' : (type === 'hover' ? 'hoverCount' : 'clickCount');
@@ -48,6 +73,18 @@ export default async function handler(req, res) {
 
             globalUpdate.$inc = { [globalField]: 1 };
             updateQuery.$inc = { [statField]: 1 };
+
+            // Granular View Tracking
+            if (type === 'view') {
+                if (source === 'feed') {
+                    globalUpdate.$inc['feedViewCount'] = 1;
+                    updateQuery.$inc['feedViews'] = 1;
+                } else {
+                    // Default to AR if source is missing or explicit 'ar'
+                    globalUpdate.$inc['arViewCount'] = 1;
+                    updateQuery.$inc['arViews'] = 1;
+                }
+            }
 
             // For Views and Clicks, track Hour, City, Country
             if (type === 'view' || type === 'click') {
@@ -108,6 +145,26 @@ export default async function handler(req, res) {
             updateQuery,
             { arrayFilters }
         );
+
+        // Real-time Update Trigger
+        if (type === 'view' || type === 'click' || type === 'hover') {
+            try {
+                // Fetch latest counts to broadcast (approximate is fine, or increment locally)
+                // For efficiency, we just broadcast the delta or the new totals if we had them. 
+                // Here we'll just signal an update so clients can increment or refetch. 
+                // Better: Pass the increment type.
+
+                // However, getting absolute "totalViews" requires a query. 
+                // Let's send a "delta" event.
+                const { pusher } = await import('@/lib/pusher');
+                await pusher.trigger(`ad-${ad._id}`, 'stats-update', {
+                    type, // 'view', 'click'
+                    increment: 1
+                });
+            } catch (e) {
+                console.error('Pusher track error', e);
+            }
+        }
 
         return res.status(200).json({ success: true });
     } catch (error) {

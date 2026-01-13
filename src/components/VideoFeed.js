@@ -1,15 +1,59 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Share2, User, MessageCircle, Volume2, VolumeX, Crown, Compass, ScanLine, BadgeCheck, X, Send, Search, Bell } from 'lucide-react';
+import { Heart, Share2, User, MessageCircle, Volume2, VolumeX, Crown, Compass, ScanLine, BadgeCheck, X, Send, Search, Bell, Play, Pause } from 'lucide-react';
 import Link from 'next/link';
 import QRCode from 'qrcode';
 import { useAuth } from '@clerk/nextjs';
+import ShareModal from './ShareModal';
 
 export default function VideoFeed({ ads: initialAds }) {
     const [ads, setAds] = useState(initialAds);
     const [activeIndex, setActiveIndex] = useState(0);
     const [isMuted, setIsMuted] = useState(true);
+    const [volume, setVolume] = useState(1);
     const [sub, setSub] = useState({ plan: 'basic', status: 'active' });
+
+    // Real-time Listeners
+    useEffect(() => {
+        // Dynamic import to avoid SSR issues with pusher-js
+        import('pusher-js').then(({ default: Pusher }) => {
+            const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
+            const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+
+            if (!pusherKey) return;
+
+            const pusher = new Pusher(pusherKey, {
+                cluster: pusherCluster,
+            });
+
+            ads.forEach(ad => {
+                const channel = pusher.subscribe(`ad-${ad._id}`);
+                channel.bind('stats-update', (data) => {
+                    setAds(prev => prev.map(a => {
+                        if (a._id === ad._id) {
+                            // Helper to update specific fields
+                            if (data.increment) {
+                                // For View/Click increments
+                                const field = data.type === 'view' ? 'viewCount' : (data.type === 'click' ? 'clickCount' : 'likes');
+                                if (data.type === 'view' || data.type === 'click') {
+                                    // Views are not stored on ad object directly in this list usually, but if we display them:
+                                    return { ...a, [field]: (a[field] || 0) + 1 };
+                                }
+                            }
+                            if (data.likes !== undefined) {
+                                return { ...a, likes: data.likes, likedBy: data.likedBy };
+                            }
+                        }
+                        return a;
+                    }));
+                });
+            });
+
+            return () => {
+                ads.forEach(ad => pusher.unsubscribe(`ad-${ad._id}`));
+            };
+        });
+    }, [ads.length]); // Re-bind if ad list changes (e.g. infinite scroll)
 
     useEffect(() => {
         fetch('/api/subscriptions/me')
@@ -24,6 +68,47 @@ export default function VideoFeed({ ads: initialAds }) {
         if (index !== activeIndex) setActiveIndex(index);
     };
 
+    const recordInterest = useCallback(async (type, slug) => {
+        try {
+            await fetch('/api/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slug, type: 'interest', action: type })
+            });
+        } catch (e) {
+            console.error('Interest track error', e);
+        }
+    }, []);
+
+    // Track 5s stay (Interest) AND basic view (Feed Source)
+    useEffect(() => {
+        if (!ads[activeIndex]) return;
+        const currentSlug = ads[activeIndex].slug;
+
+        // 1. Track Interest (5s stay)
+        const interestTimer = setTimeout(() => {
+            recordInterest('stay_5s', currentSlug);
+        }, 5000);
+
+        // 2. Track View (Immediate or short delay, e.g. 1s)
+        const viewTimer = setTimeout(() => {
+            fetch('/api/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    slug: currentSlug,
+                    type: 'view',
+                    source: 'feed'
+                })
+            }).catch(e => console.error('View track error', e));
+        }, 1000); // 1-second threshold for a "view"
+
+        return () => {
+            clearTimeout(interestTimer);
+            clearTimeout(viewTimer);
+        };
+    }, [activeIndex, ads, recordInterest]);
+
     const updateAdData = (updatedAd) => {
         setAds(prev => prev.map(ad => ad._id === updatedAd._id ? updatedAd : ad));
     };
@@ -32,8 +117,10 @@ export default function VideoFeed({ ads: initialAds }) {
         <div
             className="feed-container"
             onScroll={handleScroll}
+            onContextMenu={(e) => e.preventDefault()}
             style={{
-                height: '100vh',
+                height: '100dvh',
+                width: '100%',
                 overflowY: 'scroll',
                 scrollSnapType: 'y mandatory',
                 scrollbarWidth: 'none',
@@ -41,99 +128,42 @@ export default function VideoFeed({ ads: initialAds }) {
                 msOverflowStyle: 'none'
             }}
         >
-            {/* Top Header */}
-            <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                padding: '1.5rem 1.5rem',
-                zIndex: 100,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div className="logo" style={{
-                        fontSize: '1.5rem',
-                        fontWeight: '1000',
-                        letterSpacing: '-1.5px',
-                        color: 'white',
-                        fontFamily: 'system-ui, -apple-system, sans-serif'
-                    }}>AdgyapanFeed</div>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <Link href="/search" style={{ color: 'white', opacity: 0.8 }}><Search size={20} /></Link>
-                        <Link href="/notifications" style={{ color: 'white', opacity: 0.8 }}><Bell size={20} /></Link>
-                    </div>
-                    <Link href="/dashboard" className="btn btn-secondary" style={{
-                        backdropFilter: 'blur(20px)',
-                        background: 'rgba(255,255,255,0.08)',
-                        fontSize: '0.7rem',
-                        height: '1.8rem',
-                        padding: '0 0.8rem',
-                        color: 'white',
-                        borderRadius: '0.5rem',
-                        fontWeight: '700',
-                        border: '1px solid rgba(255,255,255,0.1)'
-                    }}>
-                        Portal
-                    </Link>
-                    {sub.plan === 'basic' && (
-                        <Link href="/pricing" className="btn btn-primary" style={{
-                            fontSize: '0.7rem',
-                            height: '1.8rem',
-                            padding: '0 0.8rem',
-                            borderRadius: '0.5rem',
-                            fontWeight: '800',
-                            gap: '0.3rem',
-                            boxShadow: '0 0 15px rgba(254, 44, 85, 0.4)'
-                        }}>
-                            <Crown size={12} /> Go Pro
-                        </Link>
-                    )}
-                </div>
 
-                <motion.div
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setIsMuted(!isMuted)}
-                    style={{
-                        cursor: 'pointer',
-                        background: 'rgba(255,255,255,0.1)',
-                        backdropFilter: 'blur(20px)',
-                        padding: '0.6rem',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                    }}
-                >
-                    {isMuted ? <VolumeX size={18} color="white" /> : <Volume2 size={18} color="white" />}
-                </motion.div>
-            </div>
-
-            {ads.map((ad, index) => (
-                <VideoCard
-                    key={ad._id}
-                    ad={ad}
-                    isActive={index === activeIndex}
-                    isMuted={isMuted}
-                    onUpdate={updateAdData}
-                />
-            ))}
-        </div>
+            {
+                ads.map((ad, index) => (
+                    <VideoCard
+                        key={ad._id}
+                        ad={ad}
+                        isActive={index === activeIndex}
+                        isMuted={isMuted}
+                        volume={volume}
+                        onMute={() => setIsMuted(!isMuted)}
+                        onVolume={(v) => {
+                            setVolume(v);
+                            if (v > 0) setIsMuted(false);
+                            else setIsMuted(true);
+                        }}
+                        onUpdate={updateAdData}
+                        onInterest={recordInterest}
+                    />
+                ))
+            }
+        </div >
     );
 }
 
-function VideoCard({ ad, isActive, isMuted, onUpdate }) {
+function VideoCard({ ad, isActive, isMuted, volume, onMute, onVolume, onUpdate, onInterest }) {
     const videoRef = useRef(null);
     const { userId } = useAuth();
     const [qrSrc, setQrSrc] = useState('');
     const [showQr, setShowQr] = useState(false);
     const [showComments, setShowComments] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
     const [isPressing, setIsPressing] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [showPlayPauseIcon, setShowPlayPauseIcon] = useState(null);
+    const [showLocalVolume, setShowLocalVolume] = useState(false);
     const pressTimer = useRef(null);
 
     const liked = ad.likedBy?.includes(userId);
@@ -141,11 +171,44 @@ function VideoCard({ ad, isActive, isMuted, onUpdate }) {
     useEffect(() => {
         if (isActive && videoRef.current) {
             videoRef.current.currentTime = 0;
-            videoRef.current.play().catch(e => console.log('Autoplay blocked', e));
+            videoRef.current.play()
+                .then(() => setIsPlaying(true))
+                .catch(e => console.log('Autoplay blocked', e));
         } else if (videoRef.current) {
             videoRef.current.pause();
+            setIsPlaying(false);
         }
     }, [isActive]);
+
+    // Sync volume when prop changes
+    useEffect(() => {
+        if (videoRef.current) {
+            videoRef.current.volume = volume;
+        }
+    }, [volume]);
+
+    const handleTimeUpdate = () => {
+        if (videoRef.current) {
+            const p = (videoRef.current.currentTime / videoRef.current.duration) * 100;
+            setProgress(p);
+        }
+    };
+
+    const togglePlay = (e) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play();
+                setIsPlaying(true);
+                setShowPlayPauseIcon('play');
+            } else {
+                videoRef.current.pause();
+                setIsPlaying(false);
+                setShowPlayPauseIcon('pause');
+            }
+            setTimeout(() => setShowPlayPauseIcon(null), 800);
+        }
+    };
 
     const handleStartPress = () => {
         pressTimer.current = setTimeout(() => {
@@ -160,7 +223,8 @@ function VideoCard({ ad, isActive, isMuted, onUpdate }) {
 
     const generateQR = async () => {
         if (qrSrc) { setShowQr(true); return; }
-        const url = `${window.location.origin}/ad/${ad._id}/views`;
+        // For AR scanning, use /ad/slug directly (without /view)
+        const url = `${window.location.origin}/ad/${ad.slug || ad._id}`;
         try {
             const src = await QRCode.toDataURL(url, { margin: 2, dark: '#000000', light: '#ffffff' });
             setQrSrc(src);
@@ -182,21 +246,17 @@ function VideoCard({ ad, isActive, isMuted, onUpdate }) {
         } catch (err) { console.error(err); }
     };
 
-    const handleShare = async () => {
+    const handleShare = () => {
+        // Just open the modal, don't count share yet
+        setShowShareModal(true);
+    };
+
+    const handleShareAction = async () => {
         try {
             const res = await fetch(`/api/ads/${ad._id}/share`, { method: 'POST' });
             const data = await res.json();
             if (data.success) {
                 onUpdate(data.data);
-                if (navigator.share) {
-                    navigator.share({
-                        title: ad.title,
-                        url: `${window.location.origin}/ad/${ad._id}/views`
-                    }).catch(() => { });
-                } else {
-                    navigator.clipboard.writeText(`${window.location.origin}/ad/${ad._id}/views`);
-                    alert('Link copied to clipboard! 📋');
-                }
             }
         } catch (err) { console.error(err); }
     };
@@ -207,9 +267,10 @@ function VideoCard({ ad, isActive, isMuted, onUpdate }) {
             onMouseUp={handleEndPress}
             onTouchStart={handleStartPress}
             onTouchEnd={handleEndPress}
+            onClick={togglePlay}
             style={{
-                height: '100vh',
-                width: '100vw',
+                height: '100dvh',
+                width: '100%',
                 scrollSnapAlign: 'start',
                 position: 'relative',
                 display: 'flex',
@@ -217,7 +278,8 @@ function VideoCard({ ad, isActive, isMuted, onUpdate }) {
                 alignItems: 'center',
                 backgroundColor: '#000',
                 userSelect: 'none',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                cursor: 'pointer'
             }}
         >
             {/* Video Background */}
@@ -227,6 +289,8 @@ function VideoCard({ ad, isActive, isMuted, onUpdate }) {
                     src={ad.videoUrl}
                     loop
                     muted={isMuted}
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={() => setProgress(0)}
                     playsInline
                     style={{
                         height: '100%',
@@ -235,6 +299,54 @@ function VideoCard({ ad, isActive, isMuted, onUpdate }) {
                         filter: isActive ? (isPressing ? 'blur(15px) brightness(0.7)' : 'none') : 'blur(25px) brightness(0.5)',
                         transition: 'filter 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}
+                />
+            </div>
+
+            {/* Play/Pause Icon Overlay */}
+            <AnimatePresence>
+                {showPlayPauseIcon && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1.2 }}
+                        exit={{ opacity: 0, scale: 1.5 }}
+                        style={{
+                            position: 'absolute',
+                            zIndex: 150,
+                            pointerEvents: 'none',
+                            background: 'rgba(0,0,0,0.4)',
+                            backdropFilter: 'blur(5px)',
+                            borderRadius: '50%',
+                            padding: '1.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                        }}
+                    >
+                        {showPlayPauseIcon === 'play' ? <Play size={40} fill="white" color="white" /> : <Pause size={40} fill="white" color="white" />}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Progress Bar */}
+            <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: '3px',
+                background: 'rgba(255,255,255,0.15)',
+                zIndex: 100,
+                overflow: 'hidden'
+            }}>
+                <motion.div
+                    style={{
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #fe2c55, #ff0080)',
+                        width: `${progress}%`,
+                        boxShadow: '0 0 10px rgba(254, 44, 85, 0.8)'
+                    }}
+                    transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
                 />
             </div>
 
@@ -299,8 +411,13 @@ function VideoCard({ ad, isActive, isMuted, onUpdate }) {
                     maxWidth: 'calc(100% - 140px)',
                     zIndex: 10
                 }}
+
             >
-                <Link href={`/profile/${ad.userId}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <Link
+                    href={`/profile/${ad.userId}`}
+                    onClick={() => onInterest('profile_visit', ad.slug)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}
+                >
                     <div style={{
                         width: '44px',
                         height: '44px',
@@ -403,6 +520,63 @@ function VideoCard({ ad, isActive, isMuted, onUpdate }) {
                     <span className="count-label">{ad.comments?.length || 0}</span>
                 </div>
 
+                <div
+                    className="action-btn"
+                    onMouseEnter={() => setShowLocalVolume(true)}
+                    onMouseLeave={() => setShowLocalVolume(false)}
+                    style={{ position: 'relative' }}
+                >
+                    <AnimatePresence>
+                        {showLocalVolume && (
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: -70 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    padding: '1rem',
+                                    background: 'rgba(0,0,0,0.8)',
+                                    backdropFilter: 'blur(20px)',
+                                    borderRadius: '1rem',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    zIndex: 100,
+                                    height: '140px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value={volume}
+                                    onChange={(e) => onVolume(parseFloat(e.target.value))}
+                                    style={{
+                                        WebkitAppearance: 'slider-vertical',
+                                        appearance: 'slider-vertical',
+                                        width: '8px',
+                                        height: '100px',
+                                        cursor: 'pointer'
+                                    }}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    <motion.div
+                        whileTap={{ scale: 0.8 }}
+                        className="icon-wrapper"
+                        onClick={(e) => { e.stopPropagation(); onMute(); }}
+                    >
+                        {isMuted || volume === 0 ? <VolumeX size={24} color="white" strokeWidth={2.5} /> : <Volume2 size={24} color="white" strokeWidth={2.5} />}
+                    </motion.div>
+                    <span className="count-label">AUDIO</span>
+                </div>
+
                 <div className="action-btn" onClick={(e) => { e.stopPropagation(); generateQR(); }}>
                     <motion.div whileTap={{ scale: 0.8 }} className="icon-wrapper" style={{ background: 'white' }}>
                         <ScanLine size={24} color="black" strokeWidth={3} />
@@ -486,6 +660,14 @@ function VideoCard({ ad, isActive, isMuted, onUpdate }) {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Share Modal */}
+            <ShareModal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                ad={ad}
+                onShare={handleShareAction}
+            />
         </div>
     );
 }

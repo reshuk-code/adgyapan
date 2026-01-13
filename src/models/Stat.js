@@ -20,6 +20,14 @@ const StatSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    feedViews: {
+        type: Number,
+        default: 0
+    },
+    arViews: {
+        type: Number,
+        default: 0
+    },
     hovers: {
         type: Number,
         default: 0,

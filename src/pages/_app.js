@@ -10,7 +10,7 @@ export default function App({ Component, pageProps }) {
   const isAdPage = router.pathname.startsWith("/ad/");
   const isHomePage = router.pathname === "/";
 
-  if (isAdPage || isHomePage) {
+  if (isAdPage) {
     return (
       <ClerkProvider>
         <NotificationManager />
@@ -24,7 +24,7 @@ export default function App({ Component, pageProps }) {
     <ClerkProvider>
       <NotificationManager />
       <Toaster position="top-right" />
-      <Layout>
+      <Layout fullPage={router.pathname === '/feed'}>
         <Component {...pageProps} />
       </Layout>
     </ClerkProvider>

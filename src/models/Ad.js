@@ -68,6 +68,8 @@ const AdSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    feedViewCount: { type: Number, default: 0 },
+    arViewCount: { type: Number, default: 0 },
     hoverCount: {
         type: Number,
         default: 0,

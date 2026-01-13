@@ -1,5 +1,6 @@
 import dbConnect from '@/lib/db';
 import Ad from '@/models/Ad';
+import Profile from '@/models/Profile';
 import Subscription from '@/models/Subscription';
 import { getAuth, createClerkClient } from '@clerk/nextjs/server';
 import { sendNotification } from '@/lib/notifications';
@@ -8,6 +9,7 @@ import { pusher } from '@/lib/pusher';
 const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 export default async function handler(req, res) {
+    console.log('Ignoring request to like.js: ', req.method, req.query);
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
@@ -41,6 +43,14 @@ export default async function handler(req, res) {
                 { new: true }
             );
 
+            // TRACK INTEREST: User liked a category
+            if (ad.category) {
+                await Profile.findOneAndUpdate(
+                    { userId },
+                    { $inc: { [`interestScores.${ad.category}`]: 2 } }
+                );
+            }
+
             // NOTIFY: If user liked (not unliked) and it's not their own ad
             if (ad.userId !== userId) {
                 const actor = await clerkClient.users.getUser(userId);
@@ -63,6 +73,14 @@ export default async function handler(req, res) {
                     console.error('Pusher trigger failed:', err);
                 }
             }
+
+            // Real-time Stats Update (Public)
+            try {
+                await pusher.trigger(`ad-${ad._id}`, 'stats-update', {
+                    likes: ad.likes,
+                    likedBy: ad.likedBy
+                });
+            } catch (err) { console.error('Pusher stats failed', err); }
         }
 
         // HYDRATION: Fetch plans for all users involved

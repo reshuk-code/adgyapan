@@ -29,6 +29,11 @@ const ProfileSchema = new mongoose.Schema({
         type: Boolean,
         default: false, // Default to AR-only tracking
     },
+    interestScores: {
+        type: Map,
+        of: Number,
+        default: {}
+    },
     createdAt: {
         type: Date,
         default: Date.now,

@@ -5,7 +5,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, Cell
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, Cell, PieChart, Pie
 } from 'recharts';
 import {
     ArrowLeft, TrendingUp, Eye, MousePointer2, Zap, BarChart3, Lock, Crown, Info, MapPin, Clock, Timer
@@ -15,27 +15,36 @@ import { format, parseISO } from 'date-fns';
 export default function AnalyticsDashboard() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState({ daily: [], hourly: [], geo: { countries: [], cities: [] }, summary: {} });
+    const [data, setData] = useState({ daily: [], hourly: [], geo: { countries: [], cities: [] }, summary: {}, ads: [] });
     const [error, setError] = useState(null);
+    const [selectedAd, setSelectedAd] = useState('all');
 
     useEffect(() => {
-        async function fetchStats() {
-            try {
-                const res = await fetch('/api/stats');
-                const result = await res.json();
-                if (result.success) {
-                    setData(result.data);
-                } else {
-                    setError(result.error);
-                }
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchStats();
+        fetchStats('all');
     }, []);
+
+    async function fetchStats(adId) {
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/stats?adId=${adId}`);
+            const result = await res.json();
+            if (result.success) {
+                setData(result.data);
+            } else {
+                setError(result.error);
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const handleAdChange = (e) => {
+        const id = e.target.value;
+        setSelectedAd(id);
+        fetchStats(id);
+    };
 
     if (loading) return <div className="container" style={{ marginTop: '5rem', textAlign: 'center' }}>Loading Deep Analytics...</div>;
 
@@ -82,15 +91,42 @@ export default function AnalyticsDashboard() {
                 <ArrowLeft size={16} /> Back to Dashboard
             </Link>
 
-            <header style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <header style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <h1 style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
                         Deep Analytics <Crown size={32} style={{ color: '#f59e0b' }} />
                     </h1>
                     <p style={{ color: '#a1a1aa' }}>Professional engagement & geographic insights</p>
                 </div>
-                <div className="glass-card" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981' }}>
-                    <TrendingUp size={14} /> Last 30 Days
+
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div className="glass-card" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <select
+                            value={selectedAd}
+                            onChange={handleAdChange}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'white',
+                                outline: 'none',
+                                fontSize: '0.9rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                minWidth: '150px'
+                            }}
+                        >
+                            <option value="all" style={{ background: '#000' }}>Overall Performance</option>
+                            {data.ads && data.ads.map(ad => (
+                                <option key={ad._id} value={ad._id} style={{ background: '#000' }}>
+                                    {ad.title.length > 25 ? ad.title.substring(0, 25) + '...' : ad.title}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="glass-card" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981' }}>
+                        <TrendingUp size={14} /> Last 30 Days
+                    </div>
                 </div>
             </header>
 
@@ -129,6 +165,73 @@ export default function AnalyticsDashboard() {
                         </div>
                     </motion.div>
                 ))}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+                {/* Traffic Source Chart */}
+                <div className="glass-card" style={{ padding: '2rem' }}>
+                    <h3 style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
+                        <Zap size={20} color="#8b5cf6" /> Traffic Source
+                    </h3>
+                    <div style={{ width: '100%', height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <ResponsiveContainer>
+                            <PieChart>
+                                <Pie
+                                    data={[
+                                        { name: 'AR Scans', value: data.summary.totalArViews || 0 },
+                                        { name: 'Feed Views', value: data.summary.totalFeedViews || 0 }
+                                    ]}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    fill="#8884d8"
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    <Cell key="cell-ar" fill="#10b981" />
+                                    <Cell key="cell-feed" fill="#3b82f6" />
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginTop: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} /> AR Scans
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3b82f6' }} /> Feed Views
+                        </div>
+                    </div>
+                </div>
+
+                {/* Engagement Breakdown */}
+                <div className="glass-card" style={{ padding: '2rem' }}>
+                    <h3 style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
+                        <MousePointer2 size={20} color="#f59e0b" /> User Actions
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', justifyContent: 'center', height: '100%' }}>
+                        {[
+                            { label: 'Likes', value: data.summary.totalLikes || 0, color: '#fe2c55' },
+                            { label: 'Comments', value: data.summary.totalComments || 0, color: '#3b82f6' },
+                            { label: 'Shares', value: data.summary.totalShares || 0, color: '#10b981' },
+                            { label: 'Clicks', value: data.summary.totalClicks || 0, color: '#f59e0b' }
+                        ].map((item, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#a1a1aa' }}>{item.label}</span>
+                                <div style={{ flex: 1, margin: '0 1rem', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${Math.min((item.value / (data.summary.totalViews || 1)) * 100 * 5, 100)}%` }}
+                                        style={{ height: '100%', background: item.color }}
+                                    />
+                                </div>
+                                <span style={{ fontWeight: 700, minWidth: '40px', textAlign: 'right' }}>{item.value}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
