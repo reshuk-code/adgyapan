@@ -99,7 +99,7 @@ export default function AdView() {
 
                 {arReady && (
                     <a-scene
-                        mindar-image={`imageTargetSrc: ${ad.targetUrl}; filterMinCF:0.0001; filterBeta: 0.001;`}
+                        mindar-image={`imageTargetSrc: ${ad.targetUrl}; filterMinCF:0.0005; filterBeta: 0.005; missTolerance: 5;`}
                         color-space="sRGB"
                         renderer="colorManagement: true, physicallyCorrectLights"
                         vr-mode-ui="enabled: false"
@@ -139,9 +139,9 @@ export default function AdView() {
                             <a-plane
                                 src="#vid"
                                 position={`${overlay.positionX || 0} ${overlay.positionY || 0} 0`}
-                                height="0.552"
+                                height={`${1 / (overlay.aspectRatio || 1.777)}`}
                                 width="1"
-                                rotation={`0 0 ${overlay.rotation || 0}`}
+                                rotation={`${overlay.rotationX || 0} ${overlay.rotationY || 0} ${overlay.rotation || 0}`}
                                 scale={`${overlay.scale || 1} ${overlay.scale || 1} 1`}
                                 opacity={overlay.opacity || 1}
                                 className="clickable"

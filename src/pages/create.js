@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Upload, Zap, Eye, RotateCcw, Maximize, Palette, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Upload, Zap, Eye, RotateCcw, Maximize, Palette, ChevronRight, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
 import { Crown, Lock, Info, PlusCircle } from 'lucide-react';
 
@@ -44,7 +44,10 @@ export default function CreateCampaign() {
     const [overlay, setOverlay] = useState({
         scale: 0.8,
         opacity: 0.9,
+        aspectRatio: 1.777,
         rotation: 0,
+        rotationX: 0,
+        rotationY: 0,
         positionX: 0,
         positionY: 0
     });
@@ -53,7 +56,17 @@ export default function CreateCampaign() {
         const file = e.target.files[0];
         if (file) {
             setForm(prev => ({ ...prev, [type]: file }));
-            setPreviews(prev => ({ ...prev, [type]: URL.createObjectURL(file) }));
+            const previewUrl = URL.createObjectURL(file);
+            setPreviews(prev => ({ ...prev, [type]: previewUrl }));
+
+            if (type === 'video') {
+                const video = document.createElement('video');
+                video.src = previewUrl;
+                video.onloadedmetadata = () => {
+                    const ar = video.videoWidth / video.videoHeight;
+                    setOverlay(prev => ({ ...prev, aspectRatio: ar }));
+                };
+            }
         }
     };
 
@@ -313,9 +326,10 @@ export default function CreateCampaign() {
                                             position: 'absolute',
                                             top: '50%',
                                             left: '50%',
-                                            width: '60%',
-                                            height: '40%',
-                                            transform: `translate(-50%, -50%) translate(${overlay.positionX * 100}%, ${-overlay.positionY * 100}%) rotate(${overlay.rotation}deg) scale(${overlay.scale})`,
+                                            width: `${60}%`,
+                                            aspectRatio: `${overlay.aspectRatio}`,
+                                            height: 'auto',
+                                            transform: `translate(-50%, -50%) translate(${overlay.positionX * 100}%, ${-overlay.positionY * 100}%) perspective(1000px) rotateX(${overlay.rotationX}deg) rotateY(${overlay.rotationY}deg) rotateZ(${overlay.rotation}deg) scale(${overlay.scale})`,
                                             opacity: overlay.opacity,
                                             border: '2px solid #FFD700',
                                             boxShadow: '0 0 30px rgba(255, 215, 0, 0.4)',
@@ -336,9 +350,12 @@ export default function CreateCampaign() {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                             {[
-                                { label: 'Scale Factor', key: 'scale', min: 0.1, max: 2, step: 0.1, unit: 'x' },
-                                { label: 'Opacity Alpha', key: 'opacity', min: 0, max: 1, step: 0.1, unit: '%' },
-                                { label: 'Rotation Euler', key: 'rotation', min: 0, max: 360, step: 1, unit: '°' }
+                                { label: 'Scale Factor', key: 'scale', min: 0.1, max: 4, step: 0.05, unit: 'x' },
+                                { label: 'Aspect Ratio', key: 'aspectRatio', min: 0.1, max: 3, step: 0.01, unit: ':1' },
+                                { label: 'Opacity Alpha', key: 'opacity', min: 0, max: 1, step: 0.05, unit: '%' },
+                                { label: 'Rotation Z', key: 'rotation', min: -180, max: 180, step: 1, unit: '°' },
+                                { label: 'Rotation X', key: 'rotationX', min: -90, max: 90, step: 1, unit: '°' },
+                                { label: 'Rotation Y', key: 'rotationY', min: -90, max: 90, step: 1, unit: '°' }
                             ].map((ctrl) => (
                                 <div key={ctrl.key} className="form-group" style={{ marginBottom: 0 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>

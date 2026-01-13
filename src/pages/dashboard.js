@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
-import { Plus, BarChart2, Eye, MousePointer2, Settings, Share2, Globe, FileEdit, BadgeCheck } from 'lucide-react';
+import { Plus, BarChart2, Eye, MousePointer2, Settings, Share2, Globe, FileEdit, BadgeCheck, Zap } from 'lucide-react';
 
 export default function Dashboard() {
     const { isLoaded, userId, getToken } = useAuth();
@@ -133,8 +133,41 @@ export default function Dashboard() {
                             }}
                         >
                             {/* Card Image Wrapper */}
-                            <div style={{ position: 'relative', height: '220px', width: '100%' }}>
+                            <div style={{ position: 'relative', height: '220px', width: '100%', overflow: 'hidden' }}>
                                 <img src={ad.imageUrl} alt={ad.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+
+                                {/* AR Preview Overlay on Thumbnail */}
+                                <div style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    pointerEvents: 'none'
+                                }}>
+                                    <div style={{
+                                        width: '40%',
+                                        aspectRatio: ad.overlay?.aspectRatio || 1.77,
+                                        background: 'rgba(255, 215, 0, 0.15)',
+                                        border: '1px solid rgba(255, 215, 0, 0.4)',
+                                        boxShadow: '0 0 20px rgba(0,0,0,0.5)',
+                                        transform: `
+                                            translate(${ad.overlay?.positionX * 50}px, ${-ad.overlay?.positionY * 50}px) 
+                                            perspective(400px) 
+                                            rotateX(${ad.overlay?.rotationX || 0}deg) 
+                                            rotateY(${ad.overlay?.rotationY || 0}deg) 
+                                            rotateZ(${ad.overlay?.rotation || 0}deg) 
+                                            scale(${ad.overlay?.scale || 1})
+                                        `,
+                                        backdropFilter: 'blur(2px)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <Zap size={16} color="#FFD700" opacity={0.5} />
+                                    </div>
+                                </div>
+
                                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }} />
 
                                 <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>

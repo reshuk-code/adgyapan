@@ -26,7 +26,10 @@ const AdSchema = new mongoose.Schema({
     overlay: {
         scale: { type: Number, default: 1 },
         opacity: { type: Number, default: 1 },
+        aspectRatio: { type: Number, default: 1.777 },
         rotation: { type: Number, default: 0 },
+        rotationX: { type: Number, default: 0 },
+        rotationY: { type: Number, default: 0 },
         positionX: { type: Number, default: 0 },
         positionY: { type: Number, default: 0 },
     },
