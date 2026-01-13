@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Pusher from 'pusher-js';
 import toast from 'react-hot-toast';
+import { BadgeCheck } from 'lucide-react';
 
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -94,7 +95,10 @@ export default function NotificationManager() {
                             alt=""
                         />
                         <div style={{ flex: 1 }}>
-                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700 }}>{data.actor.name}</p>
+                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {data.actor.name}
+                                {(data.actorIsPro === true || String(data.actorIsPro) === 'true') && <BadgeCheck size={14} fill="#FFD700" color="white" />}
+                            </p>
                             <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.7 }}>{data.message}</p>
                         </div>
                     </div>

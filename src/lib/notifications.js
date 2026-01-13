@@ -14,17 +14,20 @@ webpush.setVapidDetails(
     process.env.VAPID_PRIVATE_KEY || VAPID_PRIVATE_KEY
 );
 
-export async function sendNotification(recipientId, { actor, type, message, entityId }) {
+export async function sendNotification(recipientId, { actor, type, message, entityId, entityThumbnail, actorIsPro }) {
     try {
         // 1. Create In-App Notification
+        console.log(`Saving notification for ${recipientId}: actorIsPro=${actorIsPro}, thumbnail=${entityThumbnail}`);
         await Notification.create({
             userId: recipientId,
             actorId: actor.id,
             actorName: actor.name,
             actorAvatar: actor.avatar,
+            actorIsPro,
             type,
             message,
-            entityId
+            entityId,
+            entityThumbnail
         });
 
         // 2. Send Push Notification if subscription exists
@@ -32,11 +35,12 @@ export async function sendNotification(recipientId, { actor, type, message, enti
         if (subRecord && subRecord.subscription) {
             const payload = JSON.stringify({
                 title: 'Adgyapan',
-                body: `${actor.name} ${message}`,
+                body: `${actorIsPro ? '✅ ' : ''}${actor.name} ${message}`,
                 icon: actor.avatar,
                 data: {
                     url: entityId ? `/ad/${entityId}/views` : `/profile/${actor.id}`
-                }
+                },
+                badge: '/favicon.ico'
             });
 
             await webpush.sendNotification(subRecord.subscription, payload);

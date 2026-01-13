@@ -13,6 +13,7 @@ const NotificationSchema = new mongoose.Schema({
     },
     actorName: String,
     actorAvatar: String,
+    actorIsPro: Boolean,
     type: {
         type: String,
         enum: ['follow', 'like', 'comment', 'reply'],
@@ -23,6 +24,7 @@ const NotificationSchema = new mongoose.Schema({
         index: true
     },
     message: String,
+    entityThumbnail: String,
     isRead: {
         type: Boolean,
         default: false
@@ -32,5 +34,10 @@ const NotificationSchema = new mongoose.Schema({
         default: Date.now
     }
 });
+
+// Force schema update in development
+if (process.env.NODE_ENV === 'development' && mongoose.models.Notification) {
+    delete mongoose.models.Notification;
+}
 
 export default mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);

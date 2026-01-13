@@ -36,4 +36,9 @@ const SubscriptionSchema = new mongoose.Schema({
     }
 });
 
+// Force schema update in development
+if (process.env.NODE_ENV === 'development' && mongoose.models.Subscription) {
+    delete mongoose.models.Subscription;
+}
+
 export default mongoose.models.Subscription || mongoose.model('Subscription', SubscriptionSchema);

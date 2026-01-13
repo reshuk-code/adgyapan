@@ -54,6 +54,11 @@ export default async function handler(req, res) {
             // NOTIFY: If user liked (not unliked) and it's not their own ad
             if (ad.userId !== userId) {
                 const actor = await clerkClient.users.getUser(userId);
+
+                // Check if Actor is Pro
+                const actorSub = await Subscription.findOne({ userId });
+                const isPro = actorSub && (actorSub.plan?.toLowerCase() === 'pro' || actorSub.plan?.toLowerCase() === 'enterprise');
+
                 const notificationPayload = {
                     actor: {
                         id: userId,
@@ -62,7 +67,9 @@ export default async function handler(req, res) {
                     },
                     type: 'like',
                     message: 'liked your ad',
-                    entityId: ad._id
+                    entityId: ad._id,
+                    entityThumbnail: ad.imageUrl,
+                    actorIsPro: isPro
                 };
 
                 await sendNotification(ad.userId, notificationPayload);

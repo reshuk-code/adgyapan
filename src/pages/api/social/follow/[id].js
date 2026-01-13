@@ -4,6 +4,8 @@ import Follow from '@/models/Follow';
 import Notification from '@/models/Notification';
 import { getAuth, createClerkClient } from '@clerk/nextjs/server';
 import { pusher } from '@/lib/pusher';
+import { sendNotification } from '@/lib/notifications';
+import Subscription from '@/models/Subscription';
 
 const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
@@ -38,6 +40,11 @@ export default async function handler(req, res) {
 
             // Create notification for the target user
             const actor = await clerkClient.users.getUser(followerId);
+
+            // Check Pro Status
+            const actorSub = await Subscription.findOne({ userId: followerId });
+            const isPro = actorSub && (actorSub.plan?.toLowerCase() === 'pro' || actorSub.plan?.toLowerCase() === 'enterprise');
+
             const notificationPayload = {
                 actor: {
                     id: followerId,
@@ -45,17 +52,11 @@ export default async function handler(req, res) {
                     avatar: actor.imageUrl
                 },
                 type: 'follow',
-                message: 'started following you'
+                message: 'started following you',
+                actorIsPro: isPro
             };
 
-            await Notification.create({
-                userId: followingId,
-                actorId: notificationPayload.actor.id,
-                actorName: notificationPayload.actor.name,
-                actorAvatar: notificationPayload.actor.avatar,
-                type: notificationPayload.type,
-                message: notificationPayload.message
-            });
+            await sendNotification(followingId, notificationPayload);
 
             try {
                 await pusher.trigger(`user-${followingId}`, 'notification', notificationPayload);

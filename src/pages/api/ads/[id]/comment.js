@@ -47,6 +47,10 @@ export default async function handler(req, res) {
 
         // NOTIFY: Ad owner
         if (ad.userId !== userId) {
+            // Check Pro Status
+            const actorSub = await Subscription.findOne({ userId });
+            const isPro = actorSub && (actorSub.plan?.toLowerCase() === 'pro' || actorSub.plan?.toLowerCase() === 'enterprise');
+
             const notificationPayload = {
                 actor: {
                     id: userId,
@@ -55,7 +59,9 @@ export default async function handler(req, res) {
                 },
                 type: 'comment',
                 message: `commented: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`,
-                entityId: ad._id
+                entityId: ad._id,
+                entityThumbnail: ad.imageUrl,
+                actorIsPro: isPro
             };
 
             await sendNotification(ad.userId, notificationPayload);

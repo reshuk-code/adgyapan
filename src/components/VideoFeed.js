@@ -439,7 +439,7 @@ function VideoCard({ ad, isActive, isMuted, volume, onMute, onVolume, onUpdate, 
                                     animate={{ scale: 1 }}
                                     style={{ color: '#f59e0b', display: 'flex' }}
                                 >
-                                    <BadgeCheck size={16} fill="#f59e0b" color="black" strokeWidth={1.5} />
+                                    <BadgeCheck size={16} fill="#FFD700" color="white" strokeWidth={1.5} />
                                 </motion.div>
                             )}
                         </div>
