@@ -8,9 +8,10 @@ import { Toaster } from 'react-hot-toast';
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const isAdPage = router.pathname.startsWith("/ad/");
+  const isEmbedPage = router.pathname === "/embed";
   const isHomePage = router.pathname === "/";
 
-  if (isAdPage) {
+  if (isAdPage || isEmbedPage) {
     return (
       <ClerkProvider>
         <NotificationManager />

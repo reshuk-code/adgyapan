@@ -16,7 +16,7 @@ const NotificationSchema = new mongoose.Schema({
     actorIsPro: Boolean,
     type: {
         type: String,
-        enum: ['follow', 'like', 'comment', 'reply'],
+        enum: ['follow', 'like', 'comment', 'reply', 'wallet'],
         required: true
     },
     entityId: {

@@ -23,151 +23,121 @@ export default async function handler(req, res) {
     try {
         const ad = await Ad.findOne({ slug });
 
-        if (!ad) {
-            console.log('[TRACK] Ad not found for slug:', slug);
-            return res.status(404).json({ success: false, error: 'Ad not found' });
-        }
+        if (!ad) return res.status(404).json({ success: false, error: 'Ad not found' });
 
-        // Check user's analytics preference
         const profile = await Profile.findOne({ userId: ad.userId });
-        const countBothViews = profile?.countBothViews === true; // Default to false (AR-only)
+        const countBothViews = profile?.countBothViews === true;
 
-        console.log(`[TRACK] Ad Owner: ${ad.userId}, CountBothViews: ${countBothViews}`);
-
-        // Skip tracking if source is 'feed' and user only wants AR views
         if (source === 'feed' && !countBothViews) {
-            console.log('[TRACK] Skipped: Feed view but user wants AR-only');
-            return res.status(200).json({ success: true, message: 'Tracking skipped per user preference' });
+            return res.status(200).json({ success: true, message: 'Filtered' });
         }
 
-        // Extract Geo data from headers (provided by Vercel/Netlify/Nginx if applicable)
-        // For development, we can try to guess or use headers
-        const country = req.headers['x-vercel-ip-country'] || 'Unknown';
-        const city = req.headers['x-vercel-ip-city'] || 'Unknown';
-        const currentHour = new Date().getHours();
+        const country = req.headers['x-vercel-ip-country'] || 'Global';
+        const city = req.headers['x-vercel-ip-city'] || 'Remote';
 
-        const updateQuery = {};
-        const globalUpdate = {};
-
+        // 0. Handle Specialized Types (Interest & ScreenTime)
         if (type === 'interest') {
+            const { getAuth } = await import('@clerk/nextjs/server');
             const { userId } = getAuth(req);
             if (userId && ad.category) {
                 const { action } = req.body;
-                let score = 0;
-                if (action === 'stay_5s') score = 3;
-                if (action === 'profile_visit') score = 2;
-
+                const score = action === 'stay_5s' ? 3 : (action === 'profile_visit' ? 2 : 0);
                 if (score > 0) {
-                    await Profile.findOneAndUpdate(
-                        { userId },
-                        { $inc: { [`interestScores.${ad.category}`]: score } }
-                    );
+                    await Profile.findOneAndUpdate({ userId }, { $inc: { [`interestScores.${ad.category}`]: score } });
                 }
             }
             return res.status(200).json({ success: true });
-        } else if (type === 'screenTime') {
-            updateQuery.$inc = { totalScreenTime: duration || 0 };
-        } else {
-            const globalField = type === 'view' ? 'viewCount' : (type === 'hover' ? 'hoverCount' : 'clickCount');
-            const statField = type === 'view' ? 'views' : (type === 'hover' ? 'hovers' : 'clicks');
-
-            globalUpdate.$inc = { [globalField]: 1 };
-            updateQuery.$inc = { [statField]: 1 };
-
-            // Granular View Tracking
-            if (type === 'view') {
-                if (source === 'feed') {
-                    globalUpdate.$inc['feedViewCount'] = 1;
-                    updateQuery.$inc['feedViews'] = 1;
-                } else {
-                    // Default to AR if source is missing or explicit 'ar'
-                    globalUpdate.$inc['arViewCount'] = 1;
-                    updateQuery.$inc['arViews'] = 1;
-                }
-            }
-
-            // For Views and Clicks, track Hour, City, Country
-            if (type === 'view' || type === 'click') {
-                // Hourly
-                updateQuery.$inc[`hourlyEngagement.$[h].${statField}`] = 1;
-                // City
-                updateQuery.$inc[`cities.$[c].count`] = 1;
-                // Country
-                updateQuery.$inc[`countries.$[co].count`] = 1;
-            }
         }
 
-        // 1. Update Ad Model (Global)
-        if (Object.keys(globalUpdate).length > 0) {
-            await Ad.updateOne({ _id: ad._id }, globalUpdate);
+        // Use UTC for all date-based tracking to avoid timezone shifts
+        const now = new Date();
+        const utcToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        const utcHour = now.getUTCHours();
+
+        if (type === 'screenTime') {
+            await Stat.updateOne({ adId: ad._id, date: utcToday }, { $inc: { totalScreenTime: duration || 0 } });
+            return res.status(200).json({ success: true });
         }
 
-        // 2. Update Stat Model (Daily + Granular)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const globalField = type === 'view' ? 'viewCount' : (type === 'hover' ? 'hoverCount' : 'clickCount');
+        const statField = type === 'view' ? 'views' : (type === 'hover' ? 'hovers' : 'clicks');
 
-        const arrayFilters = [];
-        if (type === 'view' || type === 'click') {
-            arrayFilters.push({ 'h.hour': currentHour });
-            arrayFilters.push({ 'c.name': city });
-            arrayFilters.push({ 'co.code': country });
+        // 1. Update Global Ad Stats
+        const adInc = { [globalField]: 1 };
+        if (type === 'view') {
+            adInc[source === 'feed' ? 'feedViewCount' : 'arViewCount'] = 1;
         }
+        await Ad.updateOne({ _id: ad._id }, { $inc: adInc });
 
-        // We use two steps for arrays to handle "upserting" into sub-documents 
-        // because MongoDB's positional operators with arrayFilters can't create missing elements easily.
-        // For simplicity in this demo, we'll initialize the arrays on first insert.
-
-        let dailyStat = await Stat.findOne({ adId: ad._id, date: today });
-
+        // 2. Find or Create Daily Stat (UTC)
+        let dailyStat = await Stat.findOne({ adId: ad._id, date: utcToday });
         if (!dailyStat) {
-            // Initialize with arrays
-            dailyStat = await Stat.create({
-                adId: ad._id,
-                userId: ad.userId,
-                date: today,
-                hourlyEngagement: Array.from({ length: 24 }, (_, i) => ({ hour: i, views: 0, clicks: 0 })),
-                cities: [{ name: city, count: 0 }],
-                countries: [{ code: country, count: 0 }]
-            });
-        }
-
-        // Ensure city/country exist in arrays
-        if (!dailyStat.cities.find(c => c.name === city)) {
-            await Stat.updateOne({ _id: dailyStat._id }, { $push: { cities: { name: city, count: 0 } } });
-        }
-        if (!dailyStat.countries.find(c => co.code === country)) {
-            await Stat.updateOne({ _id: dailyStat._id }, { $push: { countries: { code: country, count: 0 } } });
-        }
-
-        // Now run the actual increment
-        await Stat.updateOne(
-            { _id: dailyStat._id },
-            updateQuery,
-            { arrayFilters }
-        );
-
-        // Real-time Update Trigger
-        if (type === 'view' || type === 'click' || type === 'hover') {
             try {
-                // Fetch latest counts to broadcast (approximate is fine, or increment locally)
-                // For efficiency, we just broadcast the delta or the new totals if we had them. 
-                // Here we'll just signal an update so clients can increment or refetch. 
-                // Better: Pass the increment type.
-
-                // However, getting absolute "totalViews" requires a query. 
-                // Let's send a "delta" event.
-                const { pusher } = await import('@/lib/pusher');
-                await pusher.trigger(`ad-${ad._id}`, 'stats-update', {
-                    type, // 'view', 'click'
-                    increment: 1
+                dailyStat = await Stat.create({
+                    adId: ad._id,
+                    userId: ad.userId,
+                    date: utcToday,
+                    hourlyEngagement: Array.from({ length: 24 }, (_, i) => ({ hour: i, views: 0, clicks: 0 })),
+                    cities: [{ name: city, count: 0 }],
+                    countries: [{ code: country, count: 0 }]
                 });
             } catch (e) {
-                console.error('Pusher track error', e);
+                // Handle possible race condition on create
+                dailyStat = await Stat.findOne({ adId: ad._id, date: utcToday });
             }
+        }
+
+        if (!dailyStat) throw new Error('Failed to resolve daily stat');
+
+        // 3. Increment Daily Stats (Basic)
+        const dailyInc = { [statField]: 1 };
+        if (type === 'view') {
+            dailyInc[source === 'feed' ? 'feedViews' : 'arViews'] = 1;
+        }
+        await Stat.updateOne({ _id: dailyStat._id }, { $inc: dailyInc });
+
+        // 4. Increment Granular Stats (Geo / Hourly)
+        if (type === 'view' || type === 'click') {
+            // Hourly (by UTC hour)
+            await Stat.updateOne(
+                { _id: dailyStat._id, 'hourlyEngagement.hour': utcHour },
+                { $inc: { [`hourlyEngagement.$.${statField}`]: 1 } }
+            );
+
+            // Ensure City Exists
+            await Stat.updateOne(
+                { _id: dailyStat._id, 'cities.name': { $ne: city } },
+                { $push: { cities: { name: city, count: 0 } } }
+            );
+            // Increment City
+            await Stat.updateOne(
+                { _id: dailyStat._id, 'cities.name': city },
+                { $inc: { 'cities.$.count': 1 } }
+            );
+
+            // Ensure Country Exists
+            await Stat.updateOne(
+                { _id: dailyStat._id, 'countries.code': { $ne: country } },
+                { $push: { countries: { code: country, count: 0 } } }
+            );
+            // Increment Country
+            await Stat.updateOne(
+                { _id: dailyStat._id, 'countries.code': country },
+                { $inc: { 'countries.$.count': 1 } }
+            );
+        }
+
+        // 5. Pusher Broadcast
+        if (type === 'view' || type === 'click') {
+            try {
+                const { pusher } = await import('@/lib/pusher');
+                await pusher.trigger(`ad-${ad._id}`, 'stats-update', { type, increment: 1 });
+            } catch (e) { }
         }
 
         return res.status(200).json({ success: true });
     } catch (error) {
+        console.error('[TRACK_ERROR]', error);
         return res.status(500).json({ success: false, error: error.message });
     }
 }

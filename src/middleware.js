@@ -10,8 +10,14 @@ const isProtectedRoute = createRouteMatcher([
     '/api/subscriptions(.*)'
 ]);
 
+const isPublicRoute = createRouteMatcher([
+    '/',
+    '/api/ads/embed',
+    '/api/ads/public'
+]);
+
 export default clerkMiddleware(async (auth, req) => {
-    if (isProtectedRoute(req)) {
+    if (isProtectedRoute(req) && !isPublicRoute(req)) {
         await auth.protect();
     }
 });

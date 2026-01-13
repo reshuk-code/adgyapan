@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
-import { Search, Bell, Compass, X } from 'lucide-react';
+import { Search, Bell, Compass, X, TrendingUp, ShieldAlert } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import MarketplaceIcon from './MarketplaceIcon';
 
 const HamburgerIcon = ({ isOpen }) => (
     <div style={{ position: 'relative', width: '20px', height: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
@@ -23,6 +24,22 @@ const HamburgerIcon = ({ isOpen }) => (
 
 export default function Layout({ children, fullPage = false }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useEffect(() => {
+        const checkAdmin = async () => {
+            try {
+                const res = await fetch('/api/user/kyc');
+                const data = await res.json();
+                if (data.success && data.data.isAdmin) {
+                    setIsAdmin(true);
+                }
+            } catch (err) {
+                console.error('Admin check failed', err);
+            }
+        };
+        checkAdmin();
+    }, []);
 
     const menuVariants = {
         closed: { opacity: 0, y: "-100%" },
@@ -78,7 +95,11 @@ export default function Layout({ children, fullPage = false }) {
                             <Link href="/explore" className="nav-link" title="Explore"><Compass size={20} /></Link>
                             <Link href="/search" className="nav-link" title="Search"><Search size={20} /></Link>
                             <Link href="/notifications" className="nav-link" title="Notifications"><Bell size={20} /></Link>
+                            <Link href="/marketplace" className="nav-link" title="Marketplace"><MarketplaceIcon size={20} /></Link>
                             <Link href="/dashboard" className="nav-link">Dashboard</Link>
+                            {isAdmin && (
+                                <Link href="/admin" className="nav-link" style={{ color: '#FFD700', fontWeight: 800 }}>Admin</Link>
+                            )}
                             <Link href="/create" className="btn btn-primary" style={{ height: '2.2rem', padding: '0 1rem' }}>New Campaign</Link>
                             <UserButton afterSignOutUrl="/" />
                         </SignedIn>
@@ -139,10 +160,22 @@ export default function Layout({ children, fullPage = false }) {
                                 </Link>
                             </motion.div>
                             <motion.div variants={itemVariants}>
+                                <Link href="/marketplace" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+                                    <MarketplaceIcon size={24} /> <span>Marketplace</span>
+                                </Link>
+                            </motion.div>
+                            <motion.div variants={itemVariants}>
                                 <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
                                     <div className="dot" /> <span>Creator Dashboard</span>
                                 </Link>
                             </motion.div>
+                            {isAdmin && (
+                                <motion.div variants={itemVariants}>
+                                    <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item" style={{ color: '#FFD700' }}>
+                                        <ShieldAlert size={24} /> <span>Admin Panel</span>
+                                    </Link>
+                                </motion.div>
+                            )}
                             <motion.div variants={itemVariants}>
                                 <Link href="/create" onClick={() => setMobileMenuOpen(false)} className="btn btn-primary" style={{ height: '4rem', width: '100%', fontSize: '1.2rem', borderRadius: '24px' }}>
                                     Launch New Campaign

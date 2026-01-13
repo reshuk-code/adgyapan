@@ -132,6 +132,17 @@ export default function AnalyticsDashboard() {
                 </div>
             </header>
 
+            {data.summary.isPeriodEmpty && (
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.75rem 1.5rem', borderRadius: '12px', color: '#60a5fa', fontSize: '0.85rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}
+                >
+                    <Info size={16} />
+                    <span>Showing lifetime totals while your 30-day activity window synchronizes.</span>
+                </motion.div>
+            )}
+
             {/* Summary Highlights */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '4rem' }}>
                 {[
@@ -246,43 +257,63 @@ export default function AnalyticsDashboard() {
                 </div>
             </div>
 
-            {/* Geographical Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+            {/* Hourly & Insights */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '4rem' }}>
                 <div className="glass-card" style={{ padding: '2rem' }}>
-                    <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ marginBottom: '2rem' }}>
                         <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <MapPin size={20} color="#10b981" /> Geo Locations
+                            <Clock size={20} color="#3b82f6" /> Engagement by Hour
                         </h3>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>Top Cities</span>
+                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', opacity: 0.6 }}>Peak activity window detection</p>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {data.geo.cities.length > 0 ? data.geo.cities.sort((a, b) => b.count - a.count).slice(0, 5).map((city, i) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{city.name}</span>
-                                <span style={{ fontWeight: 800, color: '#10b981' }}>{city.count} <small style={{ fontWeight: 400, opacity: 0.6 }}>Hits</small></span>
-                            </div>
-                        )) : <p style={{ color: '#3f3f46', textAlign: 'center', padding: '2rem' }}>Waiting for global data...</p>}
+                    <div style={{ width: '100%', height: 200 }}>
+                        <ResponsiveContainer>
+                            <BarChart data={data.hourly}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                                <XAxis dataKey="hour" stroke="#52525b" fontSize={10} axisLine={false} tickLine={false} tickFormatter={(h) => `${h}h`} />
+                                <Tooltip content={<CustomTooltip mode="category" />} />
+                                <Bar dataKey="views" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
 
                 <div className="glass-card" style={{ padding: '2rem', background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(139, 92, 246, 0.05) 100%)' }}>
                     <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
-                        <TrendingUp size={20} color="#8b5cf6" /> Insights
+                        <TrendingUp size={20} color="#8b5cf6" /> Real-time Insights
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         <div style={{ borderLeft: '3px solid #8b5cf6', paddingLeft: '1.25rem' }}>
                             <p style={{ fontSize: '0.9rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>Optimized Window</p>
                             <p style={{ fontSize: '0.85rem', color: '#a1a1aa', lineHeight: 1.5 }}>
-                                Engagement peaks around <strong>{data.hourly.reduce((max, h) => h.views > max.views ? h : max, { hour: 0, views: 0 }).hour}:00</strong> local time. Schedule launches globally at this interval.
+                                Engagement peaks around <strong>{data.hourly.reduce((max, h) => h.views > max.views ? h : max, { hour: 0, views: 0 }).hour}:00</strong> local time.
                             </p>
                         </div>
                         <div style={{ borderLeft: '3px solid #10b981', paddingLeft: '1.25rem' }}>
                             <p style={{ fontSize: '0.9rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>Retention Grade</p>
                             <p style={{ fontSize: '0.85rem', color: '#a1a1aa', lineHeight: 1.5 }}>
-                                User focus duration is <strong>{data.summary.avgScreenTime}s</strong>. This puts you in the top 15% of interactive performance.
+                                Average focus is <strong>{data.summary.avgScreenTime}s</strong>. This puts you in the top 15% of performance.
                             </p>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* Geographical Section */}
+            <div className="glass-card" style={{ padding: '2rem' }}>
+                <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <MapPin size={20} color="#10b981" /> Global Reach
+                    </h3>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>Top Hit Regions</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                    {data.geo.cities.length > 0 ? data.geo.cities.sort((a, b) => b.count - a.count).slice(0, 8).map((city, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{city.name}</span>
+                            <span style={{ fontWeight: 800, color: '#10b981' }}>{city.count} <small style={{ fontWeight: 400, opacity: 0.6 }}>Scans</small></span>
+                        </div>
+                    )) : <p style={{ color: '#3f3f46', textAlign: 'center', gridColumn: '1/-1', padding: '2rem' }}>Waiting for global data footprint...</p>}
                 </div>
             </div>
         </div>

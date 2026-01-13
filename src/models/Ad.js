@@ -82,8 +82,26 @@ const AdSchema = new mongoose.Schema({
         default: 0,
     },
     countBothViews: { type: Boolean, default: false },
+    isPersistent: { type: Boolean, default: false },
     ctaText: { type: String, maxlength: 20 },
     ctaUrl: { type: String },
+    ctaType: {
+        type: String,
+        enum: ['link', 'lead_form', 'phone', 'email'],
+        default: 'link'
+    },
+    leadFormFields: {
+        type: [String],
+        enum: ['name', 'email', 'phone', 'company', 'message'],
+        default: []
+    },
+    leadWebhook: { type: String },
+    leadCount: { type: Number, default: 0 },
+    ctaPositionX: { type: Number, default: 0 },
+    ctaPositionY: { type: Number, default: -0.5 },
+    ctaScale: { type: Number, default: 0.15 },
+    ctaColor: { type: String, default: '#FFD700' },
+    ctaBorderRadius: { type: Number, default: 4 },
     createdAt: {
         type: Date,
         default: Date.now,

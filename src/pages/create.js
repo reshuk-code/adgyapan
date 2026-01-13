@@ -5,7 +5,8 @@ import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Upload, Zap, Eye, RotateCcw, Maximize, Palette, ChevronRight, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
-import { Crown, Lock, Info, PlusCircle } from 'lucide-react';
+import { Crown, Lock, Info, PlusCircle, LayoutGrid } from 'lucide-react';
+import { INDUSTRY_TEMPLATES } from '@/components/IndustryTemplates';
 
 const ensureAbsoluteUrl = (url) => {
     if (!url) return '';
@@ -20,9 +21,25 @@ export default function CreateCampaign() {
     const [sub, setSub] = useState({ plan: 'basic', status: 'active' });
     const [adCount, setAdCount] = useState(0);
     const [step, setStep] = useState(1);
-    const [form, setForm] = useState({ title: '', category: 'other', image: null, video: null, ctaText: '', ctaUrl: '' });
+    const [form, setForm] = useState({ title: '', category: 'other', image: null, video: null, ctaText: '', ctaUrl: '', ctaType: 'link', leadFormFields: [], leadWebhook: '' });
     const [previews, setPreviews] = useState({ image: null, video: null });
     const [uploadStatus, setUploadStatus] = useState('');
+    const [selectedIndustry, setSelectedIndustry] = useState(null);
+    const [isPersistent, setIsPersistent] = useState(false);
+    const [imageAR, setImageAR] = useState(1); // Default 1:1
+    const [ctaSettings, setCtaSettings] = useState({
+        positionX: 0,
+        positionY: -0.5,
+        scale: 0.15,
+        color: '#FFD700',
+        borderRadius: 4
+    });
+    const [mounted, setMounted] = useState(false);
+    const [isMaximized, setIsMaximized] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         async function checkStatus() {
@@ -52,12 +69,26 @@ export default function CreateCampaign() {
         positionY: 0
     });
 
+    const handleIndustrySelect = (industry) => {
+        setSelectedIndustry(industry.id);
+        setOverlay(prev => ({ ...prev, ...industry.preset }));
+        setForm(prev => ({ ...prev, category: industry.id }));
+    };
+
     const handleFileChange = (e, type) => {
         const file = e.target.files[0];
         if (file) {
             setForm(prev => ({ ...prev, [type]: file }));
             const previewUrl = URL.createObjectURL(file);
             setPreviews(prev => ({ ...prev, [type]: previewUrl }));
+
+            if (type === 'image') {
+                const img = new Image();
+                img.src = previewUrl;
+                img.onload = () => {
+                    setImageAR(img.width / img.height);
+                };
+            }
 
             if (type === 'video') {
                 const video = document.createElement('video');
@@ -143,14 +174,28 @@ export default function CreateCampaign() {
                     imageUrl,
                     videoUrl,
                     targetUrl,
+                    isPersistent,
+                    ctaPositionX: ctaSettings.positionX,
+                    ctaPositionY: ctaSettings.positionY,
+                    ctaScale: ctaSettings.scale,
+                    ctaColor: ctaSettings.color,
+                    ctaBorderRadius: ctaSettings.borderRadius,
                     overlay,
                     ctaText: form.ctaText,
-                    ctaUrl: ensureAbsoluteUrl(form.ctaUrl)
+                    ctaUrl: form.ctaType === 'link' ? ensureAbsoluteUrl(form.ctaUrl) : form.ctaUrl,
+                    ctaType: form.ctaType,
+                    leadFormFields: form.leadFormFields,
+                    leadWebhook: form.leadWebhook
                 }),
             });
 
-            if (res.ok) router.push('/dashboard');
-            else {
+            if (res.ok) {
+                const result = await res.json();
+                setUploadStatus('Warping to Experience...');
+                setTimeout(() => {
+                    router.push('/ad/' + result.data.slug);
+                }, 1000);
+            } else {
                 const err = await res.json();
                 throw new Error(err.error || 'Creation failed');
             }
@@ -161,6 +206,8 @@ export default function CreateCampaign() {
             setUploadStatus('');
         }
     };
+
+    if (!mounted) return null;
 
     return (
         <div className="container" style={{ paddingTop: '2rem', paddingBottom: '5rem' }}>
@@ -173,7 +220,39 @@ export default function CreateCampaign() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '3rem', alignItems: 'start' }}>
                 {/* Form Side */}
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-                    <h1 style={{ marginBottom: '2.5rem', fontSize: 'clamp(2rem, 5vw, 3rem)' }}>Forge Experience</h1>
+                    <h1 style={{ marginBottom: '1.5rem', fontSize: 'clamp(2rem, 5vw, 3rem)' }}>Forge Experience</h1>
+
+                    {!selectedIndustry && (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card gold-border" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                                <LayoutGrid size={20} style={{ color: 'rgba(255,255,255,0.9)' }} />
+                                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#fff' }}>Choose Industry Template</h3>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                                {INDUSTRY_TEMPLATES.map((ind) => (
+                                    <button
+                                        key={ind.id}
+                                        onClick={() => handleIndustrySelect(ind)}
+                                        style={{
+                                            background: 'rgba(255,255,255,0.08)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: '16px',
+                                            padding: '1.25rem',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            color: '#fff'
+                                        }}
+                                        className="hover-lift"
+                                    >
+                                        <div style={{ color: '#FFD700', marginBottom: '0.75rem' }}>{ind.icon}</div>
+                                        <div style={{ fontWeight: 800, fontSize: '0.9rem', marginBottom: '0.25rem', color: '#fff' }}>{ind.name}</div>
+                                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{ind.description}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
 
                     {(sub.plan === 'basic' && adCount >= 3) ? (
                         <div className="glass-card gold-border" style={{ padding: '3.5rem 2rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255, 215, 0, 0.05) 100%)' }}>
@@ -269,29 +348,110 @@ export default function CreateCampaign() {
                                 </div>
                             </div>
 
-                            {sub.plan === 'pro' && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                                    <div className="form-group">
-                                        <label className="label">CTA Label</label>
-                                        <input
-                                            type="text"
-                                            className="input"
-                                            placeholder="Buy Now"
-                                            value={form.ctaText}
-                                            onChange={(e) => setForm({ ...form, ctaText: e.target.value })}
-                                        />
+                            <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <div style={{ fontWeight: 800, fontSize: '0.9rem', marginBottom: '0.25rem' }}>Tracking Persistence</div>
+                                        <div style={{ fontSize: '0.7rem', opacity: 0.5 }}>Keep AR visible even when camera target is lost.</div>
                                     </div>
-                                    <div className="form-group">
-                                        <label className="label">Link URL</label>
-                                        <input
-                                            type="url"
-                                            className="input"
-                                            placeholder="https://..."
-                                            value={form.ctaUrl}
-                                            onChange={(e) => setForm({ ...form, ctaUrl: e.target.value })}
+                                    <button
+                                        onClick={() => setIsPersistent(!isPersistent)}
+                                        style={{
+                                            width: '50px', height: '26px', borderRadius: '13px',
+                                            background: isPersistent ? '#FFD700' : 'rgba(255,255,255,0.1)',
+                                            position: 'relative', transition: 'all 0.3s', border: 'none', cursor: 'pointer'
+                                        }}
+                                    >
+                                        <motion.div
+                                            animate={{ x: isPersistent ? 24 : 0 }}
+                                            style={{ width: '22px', height: '22px', background: '#fff', borderRadius: '50%', position: 'absolute', top: '2px', left: '2px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
                                         />
-                                    </div>
+                                    </button>
                                 </div>
+                            </div>
+
+                            {sub.plan === 'pro' && (
+                                <>
+                                    <div className="glass-card" style={{ padding: '2rem', marginBottom: '2.5rem', background: 'rgba(255,215,0,0.03)', border: '1px solid rgba(255,215,0,0.1)' }}>
+                                        <h4 style={{ margin: '0 0 1.5rem 0', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <Zap size={18} className="gold-text" /> Call-To-Action Configuration
+                                        </h4>
+
+                                        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                            <label className="label">CTA Type</label>
+                                            <select
+                                                className="input"
+                                                value={form.ctaType}
+                                                onChange={(e) => setForm({ ...form, ctaType: e.target.value, leadFormFields: e.target.value === 'lead_form' ? ['name', 'email'] : [] })}
+                                                style={{ background: '#0a0a0a', cursor: 'pointer' }}
+                                            >
+                                                <option value="link">External Link</option>
+                                                <option value="lead_form">Lead Capture Form</option>
+                                                <option value="phone">Quick Call</option>
+                                                <option value="email">Quick Email</option>
+                                            </select>
+                                            <p style={{ fontSize: '0.7rem', color: '#71717a', marginTop: '0.5rem' }}>
+                                                {form.ctaType === 'link' && 'Opens an external website in a new tab'}
+                                                {form.ctaType === 'lead_form' && 'Captures user information directly in AR'}
+                                                {form.ctaType === 'phone' && 'Initiates a phone call (mobile devices)'}
+                                                {form.ctaType === 'email' && 'Opens email client with pre-filled address'}
+                                            </p>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                                <label className="label">Button Label</label>
+                                                <input
+                                                    type="text"
+                                                    className="input"
+                                                    placeholder={form.ctaType === 'lead_form' ? 'Contact Us' : form.ctaType === 'phone' ? 'Call Now' : form.ctaType === 'email' ? 'Email Us' : 'Learn More'}
+                                                    value={form.ctaText}
+                                                    onChange={(e) => setForm({ ...form, ctaText: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                                <label className="label">
+                                                    {form.ctaType === 'phone' ? 'Phone Number' : form.ctaType === 'email' ? 'Email Address' : form.ctaType === 'link' ? 'Destination URL' : 'Webhook URL (Optional)'}
+                                                </label>
+                                                <input
+                                                    type={form.ctaType === 'email' ? 'email' : form.ctaType === 'phone' ? 'tel' : 'url'}
+                                                    className="input"
+                                                    placeholder={form.ctaType === 'phone' ? '+977...' : form.ctaType === 'email' ? 'contact@...' : form.ctaType === 'link' ? 'https://...' : 'https://webhook.site/...'}
+                                                    value={form.ctaType === 'lead_form' ? form.leadWebhook : form.ctaUrl}
+                                                    onChange={(e) => form.ctaType === 'lead_form' ? setForm({ ...form, leadWebhook: e.target.value }) : setForm({ ...form, ctaUrl: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {form.ctaType === 'lead_form' && (
+                                            <div className="form-group">
+                                                <label className="label" style={{ marginBottom: '1rem' }}>Form Fields to Capture</label>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
+                                                    {['name', 'email', 'phone', 'company', 'message'].map(field => (
+                                                        <label key={field} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.75rem', background: form.leadFormFields.includes(field) ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.02)', border: `1px solid ${form.leadFormFields.includes(field) ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.05)'}`, borderRadius: '12px', transition: 'all 0.2s' }}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={form.leadFormFields.includes(field)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setForm({ ...form, leadFormFields: [...form.leadFormFields, field] });
+                                                                    } else {
+                                                                        setForm({ ...form, leadFormFields: form.leadFormFields.filter(f => f !== field) });
+                                                                    }
+                                                                }}
+                                                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                                            />
+                                                            <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'capitalize' }}>{field}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                                <p style={{ fontSize: '0.7rem', color: '#71717a', marginTop: '1rem' }}>
+                                                    Select which information to collect from users. Name and Email are recommended.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
                             )}
 
                             <button
@@ -313,33 +473,100 @@ export default function CreateCampaign() {
                 {/* Calibration Side */}
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                     <div className="glass-card" style={{ padding: '2rem' }}>
-                        <h3 style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <Palette size={20} className="gold-text" /> Calibration Hub
-                        </h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <Palette size={20} className="gold-text" /> Calibration Hub
+                            </h3>
+                            <button
+                                onClick={() => setIsMaximized(true)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)',
+                                    border: '1px solid rgba(255,255,255,0.1)', padding: '6px 12px', borderRadius: '8px',
+                                    color: '#fff', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700
+                                }}
+                            >
+                                <Maximize size={14} /> Maximize
+                            </button>
+                        </div>
 
-                        <div style={{ background: '#000', borderRadius: '1.5rem', overflow: 'hidden', position: 'relative', height: '320px', marginBottom: '2.5rem', border: '1px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.8)' }}>
+                        <div style={{ background: '#000', borderRadius: '1.5rem', overflow: 'hidden', position: 'relative', height: '320px', marginBottom: '2.5rem', border: '1px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {previews.image ? (
-                                <>
+                                <div style={{ position: 'relative', width: imageAR > 1.2 ? '90%' : 'auto', height: imageAR <= 1.2 ? '90%' : 'auto', aspectRatio: `${imageAR}` }}>
                                     <img src={previews.image} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                     {previews.video && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '50%',
-                                            left: '50%',
-                                            width: `${60}%`,
-                                            aspectRatio: `${overlay.aspectRatio}`,
-                                            height: 'auto',
-                                            transform: `translate(-50%, -50%) translate(${overlay.positionX * 100}%, ${-overlay.positionY * 100}%) perspective(1000px) rotateX(${overlay.rotationX}deg) rotateY(${overlay.rotationY}deg) rotateZ(${overlay.rotation}deg) scale(${overlay.scale})`,
-                                            opacity: overlay.opacity,
-                                            border: '2px solid #FFD700',
-                                            boxShadow: '0 0 30px rgba(255, 215, 0, 0.4)',
-                                            pointerEvents: 'none',
-                                            borderRadius: '4px'
-                                        }}>
+                                        <div
+                                            id="calibration-stage"
+                                            style={{
+                                                position: 'absolute',
+                                                top: '50%',
+                                                left: '50%',
+                                                width: `100%`,
+                                                aspectRatio: `${overlay.aspectRatio}`,
+                                                height: 'auto',
+                                                transform: `
+                                                    translate(-50%, -50%) 
+                                                    translate(${overlay.positionX * 100}%, ${-overlay.positionY * 100 * imageAR}%) 
+                                                    perspective(1000px) 
+                                                    rotateX(${overlay.rotationX}deg) 
+                                                    rotateY(${overlay.rotationY}deg) 
+                                                    rotateZ(${overlay.rotation}deg) 
+                                                    scale(${overlay.scale})
+                                                `,
+                                                opacity: overlay.opacity,
+                                                border: '2px solid #FFD700',
+                                                boxShadow: '0 0 30px rgba(255, 215, 0, 0.4)',
+                                                pointerEvents: 'none',
+                                                borderRadius: '4px',
+                                                zIndex: 5
+                                            }}
+                                        >
                                             <video src={previews.video} muted autoPlay loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            {/* Spatial CTA Button */}
+                                            {form.ctaText && (
+                                                <motion.div
+                                                    drag
+                                                    dragMomentum={false}
+                                                    onDragEnd={(e, info) => {
+                                                        const stage = document.getElementById(isMaximized ? 'maximize-stage' : 'calibration-stage');
+                                                        if (!stage) return;
+                                                        const rect = stage.getBoundingClientRect();
+                                                        const deltaX = info.offset.x / rect.width;
+                                                        const deltaY = -info.offset.y / rect.height;
+
+                                                        setCtaSettings(prev => ({
+                                                            ...prev,
+                                                            positionX: Math.round((prev.positionX + deltaX) * 100) / 100,
+                                                            positionY: Math.round((prev.positionY + (deltaY / overlay.aspectRatio)) * 100) / 100
+                                                        }));
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '50%',
+                                                        left: '50%',
+                                                        zIndex: 200,
+                                                        cursor: 'grab',
+                                                        pointerEvents: 'auto',
+                                                        x: `${ctaSettings.positionX * 100}%`,
+                                                        y: `${-ctaSettings.positionY * 100 * (overlay.aspectRatio)}%`,
+                                                        transform: 'translate(-50%, -50%)',
+                                                        background: ctaSettings.color || '#FFD700',
+                                                        color: '#000',
+                                                        padding: '6px 16px',
+                                                        borderRadius: `${ctaSettings.borderRadius || 4}px`,
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 900,
+                                                        whiteSpace: 'nowrap',
+                                                        boxShadow: `0 0 20px ${(ctaSettings.color || '#FFD700')}80`,
+                                                        border: '2px solid #fff'
+                                                    }}
+                                                    whileTap={{ cursor: 'grabbing', scale: 1.1 }}
+                                                >
+                                                    {form.ctaText}
+                                                </motion.div>
+                                            )}
                                         </div>
                                     )}
-                                </>
+                                </div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#3f3f46', gap: '1rem' }}>
                                     <Info size={32} opacity={0.3} />
@@ -347,49 +574,243 @@ export default function CreateCampaign() {
                                 </div>
                             )}
                         </div>
+                    </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            {[
-                                { label: 'Scale Factor', key: 'scale', min: 0.1, max: 4, step: 0.05, unit: 'x' },
-                                { label: 'Aspect Ratio', key: 'aspectRatio', min: 0.1, max: 3, step: 0.01, unit: ':1' },
-                                { label: 'Opacity Alpha', key: 'opacity', min: 0, max: 1, step: 0.05, unit: '%' },
-                                { label: 'Rotation Z', key: 'rotation', min: -180, max: 180, step: 1, unit: '°' },
-                                { label: 'Rotation X', key: 'rotationX', min: -90, max: 90, step: 1, unit: '°' },
-                                { label: 'Rotation Y', key: 'rotationY', min: -90, max: 90, step: 1, unit: '°' }
-                            ].map((ctrl) => (
-                                <div key={ctrl.key} className="form-group" style={{ marginBottom: 0 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                                        <label className="label" style={{ marginBottom: 0 }}>{ctrl.label}</label>
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'white' }}>
-                                            {ctrl.key === 'opacity' ? Math.round(overlay[ctrl.key] * 100) : overlay[ctrl.key].toFixed(ctrl.key === 'rotation' ? 0 : 1)}{ctrl.unit}
-                                        </span>
-                                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        {[
+                            { label: 'Scale Factor', key: 'scale', min: 0.1, max: 4, step: 0.05, unit: 'x' },
+                            { label: 'Aspect Ratio', key: 'aspectRatio', min: 0.1, max: 3, step: 0.01, unit: ':1' },
+                            { label: 'Opacity Alpha', key: 'opacity', min: 0, max: 1, step: 0.05, unit: '%' },
+                            { label: 'Rotation Z', key: 'rotation', min: -180, max: 180, step: 1, unit: '°' },
+                            { label: 'Rotation X', key: 'rotationX', min: -90, max: 90, step: 1, unit: '°' },
+                            { label: 'Rotation Y', key: 'rotationY', min: -90, max: 90, step: 1, unit: '°' }
+                        ].map((ctrl) => (
+                            <div key={ctrl.key} className="form-group" style={{ marginBottom: 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                    <label className="label" style={{ marginBottom: 0 }}>{ctrl.label}</label>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'white' }}>
+                                        {ctrl.key === 'opacity' ? Math.round(overlay[ctrl.key] * 100) : overlay[ctrl.key].toFixed(ctrl.key === 'rotation' ? 0 : 1)}{ctrl.unit}
+                                    </span>
+                                </div>
+                                <input
+                                    type="range"
+                                    className="input-range"
+                                    min={ctrl.min}
+                                    max={ctrl.max}
+                                    step={ctrl.step}
+                                    value={overlay[ctrl.key]}
+                                    onChange={(e) => setOverlay({ ...overlay, [ctrl.key]: parseFloat(e.target.value) })}
+                                />
+                            </div>
+                        ))}
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '0.5rem' }}>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label className="label">Spatial X</label>
+                                <input type="number" className="input" step="0.05" value={overlay.positionX} onChange={(e) => setOverlay({ ...overlay, positionX: parseFloat(e.target.value) })} />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label className="label">Spatial Y</label>
+                                <input type="number" className="input" step="0.05" value={overlay.positionY} onChange={(e) => setOverlay({ ...overlay, positionY: parseFloat(e.target.value) })} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* CTA Spatial Control */}
+                    <div style={{ marginTop: '3rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '3rem' }}>
+                        <h4 style={{ margin: '0 0 1.5rem 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <Zap size={18} className="gold-text" /> Spatial CTA Placement
+                        </h4>
+
+                        <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)' }}>
+                            <p style={{ fontSize: '0.7rem', color: '#a1a1aa', marginBottom: '1.5rem' }}>
+                                Your Call-To-Action button is now part of the 3D scene. Drag it in the calibration window or use the controls below to position it perfectly.
+                            </p>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                    <label className="label" style={{ fontSize: '0.65rem' }}>Position X</label>
                                     <input
-                                        type="range"
-                                        className="input-range"
-                                        min={ctrl.min}
-                                        max={ctrl.max}
-                                        step={ctrl.step}
-                                        value={overlay[ctrl.key]}
-                                        onChange={(e) => setOverlay({ ...overlay, [ctrl.key]: parseFloat(e.target.value) })}
+                                        type="number" step="0.05" className="input" style={{ height: '2.5rem', fontSize: '0.8rem' }}
+                                        value={ctaSettings.positionX}
+                                        onChange={(e) => setCtaSettings({ ...ctaSettings, positionX: parseFloat(e.target.value) })}
                                     />
                                 </div>
-                            ))}
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '0.5rem' }}>
                                 <div className="form-group" style={{ marginBottom: 0 }}>
-                                    <label className="label">Spatial X</label>
-                                    <input type="number" className="input" step="0.05" value={overlay.positionX} onChange={(e) => setOverlay({ ...overlay, positionX: parseFloat(e.target.value) })} />
-                                </div>
-                                <div className="form-group" style={{ marginBottom: 0 }}>
-                                    <label className="label">Spatial Y</label>
-                                    <input type="number" className="input" step="0.05" value={overlay.positionY} onChange={(e) => setOverlay({ ...overlay, positionY: parseFloat(e.target.value) })} />
+                                    <label className="label" style={{ fontSize: '0.65rem' }}>Position Y</label>
+                                    <input
+                                        type="number" step="0.05" className="input" style={{ height: '2.5rem', fontSize: '0.8rem' }}
+                                        value={ctaSettings.positionY}
+                                        onChange={(e) => setCtaSettings({ ...ctaSettings, positionY: parseFloat(e.target.value) })}
+                                    />
                                 </div>
                             </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                    <label className="label" style={{ fontSize: '0.65rem' }}>Theme Color</label>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <input
+                                            type="color"
+                                            value={ctaSettings.color}
+                                            onChange={(e) => setCtaSettings({ ...ctaSettings, color: e.target.value })}
+                                            style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer' }}
+                                        />
+                                        <input
+                                            type="text" className="input" style={{ height: '2.5rem', fontSize: '0.7rem', padding: '4px 8px' }}
+                                            value={ctaSettings.color}
+                                            onChange={(e) => setCtaSettings({ ...ctaSettings, color: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                    <label className="label" style={{ fontSize: '0.65rem' }}>Edge Radius (px)</label>
+                                    <input
+                                        type="number" className="input" style={{ height: '2.5rem', fontSize: '0.8rem' }}
+                                        value={ctaSettings.borderRadius}
+                                        onChange={(e) => setCtaSettings({ ...ctaSettings, borderRadius: parseInt(e.target.value) })}
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setCtaSettings({ ...ctaSettings, positionX: 0, positionY: -0.5 })}
+                                style={{ width: '100%', color: '#FFD700', background: 'rgba(255, 215, 0, 0.05)', border: '1px solid rgba(255, 215, 0, 0.1)', padding: '10px', borderRadius: '12px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 800 }}
+                            >
+                                Reset CTA Position
+                            </button>
                         </div>
                     </div>
                 </motion.div>
             </div>
+
+            {/* Maximize Overlay */}
+            < AnimatePresence >
+                {isMaximized && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="maximize-overlay"
+                    >
+                        <div className="maximize-header">
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Precision Calibration</h2>
+                                <p style={{ fontSize: '0.85rem', margin: '4px 0 0 0' }}>Drag keys directly on the stage for pixel-perfect placement.</p>
+                            </div>
+                            <button onClick={() => setIsMaximized(false)} className="btn btn-primary" style={{ padding: '0.6rem 1.5rem' }}>Exit Maximize</button>
+                        </div>
+
+                        <div className="maximize-content">
+                            <div className="maximize-preview-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                {previews.image ? (
+                                    <div style={{ position: 'relative', width: imageAR > 1 ? '85%' : 'auto', height: imageAR <= 1 ? '85%' : 'auto', aspectRatio: `${imageAR}` }}>
+                                        <img src={previews.image} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                        {previews.video && (
+                                            <div
+                                                id="maximize-stage"
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '50%',
+                                                    left: '50%',
+                                                    width: `100%`,
+                                                    aspectRatio: `${overlay.aspectRatio}`,
+                                                    height: 'auto',
+                                                    transform: `
+                                                        translate(-50%, -50%) 
+                                                        translate(${overlay.positionX * 100}%, ${-overlay.positionY * 100 * imageAR}%) 
+                                                        perspective(1500px) 
+                                                        rotateX(${overlay.rotationX}deg) 
+                                                        rotateY(${overlay.rotationY}deg) 
+                                                        rotateZ(${overlay.rotation}deg) 
+                                                        scale(${overlay.scale})
+                                                    `,
+                                                    opacity: overlay.opacity,
+                                                    border: '4px solid #FFD700',
+                                                    boxShadow: '0 0 50px rgba(255, 215, 0, 0.6)',
+                                                    pointerEvents: 'none',
+                                                    borderRadius: '8px',
+                                                    zIndex: 5
+                                                }}
+                                            >
+                                                <video src={previews.video} muted autoPlay loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                {form.ctaText && (
+                                                    <motion.div
+                                                        drag
+                                                        dragMomentum={false}
+                                                        onDragEnd={(e, info) => {
+                                                            const stage = document.getElementById('maximize-stage');
+                                                            if (!stage) return;
+                                                            const rect = stage.getBoundingClientRect();
+                                                            const deltaX = info.offset.x / rect.width;
+                                                            const deltaY = -info.offset.y / rect.height;
+                                                            setCtaSettings(prev => ({
+                                                                ...prev,
+                                                                positionX: Math.round((prev.positionX + deltaX) * 100) / 100,
+                                                                positionY: Math.round((prev.positionY + (deltaY / overlay.aspectRatio)) * 100) / 100
+                                                            }));
+                                                        }}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: '50%',
+                                                            left: '50%',
+                                                            zIndex: 500,
+                                                            cursor: 'grab',
+                                                            pointerEvents: 'auto',
+                                                            x: `${ctaSettings.positionX * 100}%`,
+                                                            y: `${-ctaSettings.positionY * 100 * (overlay.aspectRatio)}%`,
+                                                            transform: 'translate(-50%, -50%)',
+                                                            background: ctaSettings.color || '#FFD700',
+                                                            color: '#000',
+                                                            padding: '10px 30px',
+                                                            borderRadius: `${ctaSettings.borderRadius || 4}px`,
+                                                            fontSize: '1rem',
+                                                            fontWeight: 900,
+                                                            whiteSpace: 'nowrap',
+                                                            boxShadow: `0 0 40px ${(ctaSettings.color || '#FFD700')}80`,
+                                                            border: '2px solid #fff'
+                                                        }}
+                                                        whileTap={{ cursor: 'grabbing', scale: 1.1 }}
+                                                    >
+                                                        {form.ctaText}
+                                                    </motion.div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div style={{ color: '#3f3f46' }}>No Assets to Preview</div>
+                                )}
+                            </div>
+
+                            <div className="maximize-sidebar">
+                                <div style={{ marginBottom: '2rem' }}>
+                                    <h4 style={{ color: '#FFD700', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Zap size={18} /> CTA Precision
+                                    </h4>
+                                    <div className="glass-card" style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{form.ctaText || 'CTA Button'}</span>
+                                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: ctaSettings.color }} />
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <span>Spatial X: {ctaSettings.positionX}</span>
+                                            <span>Spatial Y: {ctaSettings.positionY}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2rem' }}>
+                                    <p style={{ fontSize: '0.75rem', color: '#a1a1aa', textAlign: 'center' }}>
+                                        Tip: Use your mouse or finger to drag keys. Exact coordinates are updated instantly in the main workspace.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )
+                }
+            </AnimatePresence >
 
             <style jsx>{`
                 .input-range {
@@ -424,6 +845,6 @@ export default function CreateCampaign() {
                 }
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
-        </div>
+        </div >
     );
 }

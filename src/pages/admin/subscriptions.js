@@ -90,3 +90,21 @@ export default function AdminSubscriptions() {
         </div>
     );
 }
+import { isAdmin } from '@/lib/admin';
+
+export async function getServerSideProps(context) {
+    const isUserAdmin = await isAdmin(context.req);
+
+    if (!isUserAdmin) {
+        return {
+            redirect: {
+                destination: '/pricing',
+                permanent: false,
+            },
+        };
+    }
+
+    return {
+        props: {},
+    };
+}

@@ -25,6 +25,34 @@ const ProfileSchema = new mongoose.Schema({
         type: String,
         default: '',
     },
+    // KYC Fields
+    kycStatus: {
+        type: String,
+        enum: ['none', 'pending', 'approved', 'rejected'],
+        default: 'none',
+    },
+    legalName: String,
+    phone: String,
+    dob: Date,
+    nationality: String,
+    address: String,
+    idType: {
+        type: String, // NID, Driving License, Passport
+        enum: ['NID', 'Driving License', 'Passport', '']
+    },
+    idNumber: String,
+    idImageUrl: String,
+    kycSubmissionDate: Date,
+
+    // Wallet Fields
+    walletBalance: {
+        type: Number,
+        default: 0,
+    },
+    totalEarned: {
+        type: Number,
+        default: 0,
+    },
     countBothViews: {
         type: Boolean,
         default: false, // Default to AR-only tracking
@@ -44,9 +72,8 @@ const ProfileSchema = new mongoose.Schema({
     }
 });
 
-ProfileSchema.pre('save', function (next) {
+ProfileSchema.pre('save', function () {
     this.updatedAt = Date.now();
-    next();
 });
 
 export default mongoose.models.Profile || mongoose.model('Profile', ProfileSchema);

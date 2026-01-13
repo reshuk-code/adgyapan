@@ -28,7 +28,7 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         try {
-            const { title, imageUrl, videoUrl, targetUrl, overlay, category, ctaText, ctaUrl } = req.body;
+            const { title, imageUrl, videoUrl, targetUrl, overlay, category, ctaText, ctaUrl, ctaPositionX, ctaPositionY, ctaScale, ctaColor, ctaBorderRadius } = req.body;
 
             if (!title || !imageUrl || !videoUrl || !targetUrl) {
                 return res.status(400).json({ success: false, error: 'Missing required fields' });
@@ -70,6 +70,11 @@ export default async function handler(req, res) {
                 overlay,
                 ctaText,
                 ctaUrl,
+                ctaPositionX,
+                ctaPositionY,
+                ctaScale,
+                ctaColor,
+                ctaBorderRadius,
                 slug,
                 authorName,
                 authorAvatar,

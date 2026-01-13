@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Script from 'next/script';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ensureAbsoluteUrl = (url) => {
     if (!url) return '';
@@ -19,6 +19,12 @@ export default function AdView() {
     const [showCta, setShowCta] = useState(false);
     const [arReady, setArReady] = useState(false);
     const [isActive, setIsActive] = useState(false); // For screenTime
+    const [isMuted, setIsMuted] = useState(true);
+    const [targetFound, setTargetFound] = useState(false);
+    const [showLeadModal, setShowLeadModal] = useState(false);
+    const [leadFormData, setLeadFormData] = useState({});
+    const [leadSubmitting, setLeadSubmitting] = useState(false);
+    const [leadSubmitted, setLeadSubmitted] = useState(false);
 
     useEffect(() => {
         // Polling to detect when scripts are loaded
@@ -114,42 +120,116 @@ export default function AdView() {
                                 crossOrigin="anonymous"
                                 playsInline
                                 webkit-playsinline="true"
+                                muted
                             ></video>
                         </a-assets>
 
-                        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+                        <a-camera position="0 0 0" look-controls="enabled: false">
+                            <a-cursor
+                                fuse="false"
+                                raycaster="objects: .clickable"
+                                material="color: #FFD700; shader: flat"
+                            ></a-cursor>
+                        </a-camera>
 
                         <a-entity
                             mindar-image-target="targetIndex: 0"
+                            id="target-entity"
                             ref={entity => {
                                 if (entity) {
                                     entity.addEventListener("targetFound", () => {
                                         const v = document.querySelector('#vid');
                                         if (v) v.play();
                                         setShowCta(true);
+                                        setTargetFound(true);
                                     });
                                     entity.addEventListener("targetLost", () => {
-                                        const v = document.querySelector('#vid');
-                                        if (v) v.pause();
-                                        setShowCta(false);
+                                        setTargetFound(false);
+                                        if (!ad.isPersistent) {
+                                            const v = document.querySelector('#vid');
+                                            if (v) v.pause();
+                                            setShowCta(false);
+                                        } else {
+                                            // Handle persistence: force visibility
+                                            setTimeout(() => {
+                                                const ent = document.querySelector('#target-entity');
+                                                if (ent) ent.setAttribute('visible', 'true');
+                                            }, 10);
+                                        }
                                     });
                                 }
                             }}
                         >
-                            <a-plane
-                                src="#vid"
+                            <a-entity
                                 position={`${overlay.positionX || 0} ${overlay.positionY || 0} 0`}
-                                height={`${1 / (overlay.aspectRatio || 1.777)}`}
-                                width="1"
                                 rotation={`${overlay.rotationX || 0} ${overlay.rotationY || 0} ${overlay.rotation || 0}`}
                                 scale={`${overlay.scale || 1} ${overlay.scale || 1} 1`}
-                                opacity={overlay.opacity || 1}
-                                className="clickable"
-                                onClick={() => {
-                                    const v = document.querySelector('#vid');
-                                    if (v) { v.play(); v.muted = false; }
-                                }}
-                            ></a-plane>
+                            >
+                                <a-plane
+                                    src="#vid"
+                                    position="0 0 0"
+                                    height={`${1 / (overlay.aspectRatio || 1.777)}`}
+                                    width="1"
+                                    opacity={overlay.opacity || 1}
+                                    className="clickable"
+                                    onClick={() => {
+                                        const v = document.querySelector('#vid');
+                                        if (v) {
+                                            v.play();
+                                            v.muted = false;
+                                            setIsMuted(false);
+                                        }
+                                    }}
+                                ></a-plane>
+
+                                {/* Spatial CTA Button */}
+                                {ad.ctaText && (
+                                    <a-entity
+                                        position={`${ad.ctaPositionX || 0} ${ad.ctaPositionY || -0.5} 0.02`}
+                                        scale={`${ad.ctaScale || 1} ${ad.ctaScale || 1} 1`}
+                                    >
+                                        <a-plane
+                                            className="clickable"
+                                            width="1.2"
+                                            height="0.4"
+                                            material={`color: ${ad.ctaColor || '#000'}; opacity: 0.9; transparent: true`}
+                                            onClick={() => {
+                                                // Handle different CTA types
+                                                if (ad.ctaType === 'lead_form') {
+                                                    setShowLeadModal(true);
+                                                } else if (ad.ctaType === 'phone' && ad.ctaUrl) {
+                                                    window.location.href = `tel:${ad.ctaUrl}`;
+                                                } else if (ad.ctaType === 'email' && ad.ctaUrl) {
+                                                    window.location.href = `mailto:${ad.ctaUrl}`;
+                                                } else if (ad.ctaUrl) {
+                                                    window.open(ensureAbsoluteUrl(ad.ctaUrl), '_blank');
+                                                }
+
+                                                fetch('/api/track', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ slug: ad.slug, type: 'click' })
+                                                });
+                                            }}
+                                        >
+                                            <a-text
+                                                value={ad.ctaText}
+                                                align="center"
+                                                width="2.5"
+                                                color="#fff"
+                                                font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+                                            ></a-text>
+                                        </a-plane>
+                                        {/* Backplane for depth/contrast */}
+                                        <a-plane
+                                            width="1.3"
+                                            height="0.5"
+                                            position="0 0 -0.01"
+                                            material={`color: ${ad.ctaColor || '#FFD700'}; opacity: 0.4`}
+                                        ></a-plane>
+                                    </a-entity>
+                                )}
+                            </a-entity>
                         </a-entity>
                     </a-scene>
                 )}
@@ -177,77 +257,265 @@ export default function AdView() {
                     </div>
                 )}
 
-                {/* AR CTA Button (Pro Only) */}
-                {showCta && ad.ctaText && ad.userPlan === 'pro' && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        style={{
-                            position: 'absolute',
-                            bottom: '100px',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            zIndex: 1001,
-                            width: 'auto'
-                        }}
-                    >
-                        <a
-                            href={ensureAbsoluteUrl(ad.ctaUrl)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => {
-                                fetch('/api/track', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ slug: ad.slug, type: 'click' })
-                                });
-                            }}
+                {/* Unmute Prompt */}
+                {targetFound && isMuted && (
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '100px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 2000,
+                        textAlign: 'center'
+                    }}>
+                        <motion.button
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            whileTap={{ scale: 0.95 }}
                             style={{
-                                display: 'block',
-                                padding: '12px 30px',
-                                background: 'linear-gradient(135deg, #fe2c55 0%, #ff4b2b 100%)',
-                                color: 'white',
+                                padding: '12px 24px',
+                                background: 'white',
+                                color: 'black',
+                                border: 'none',
                                 borderRadius: '30px',
-                                fontWeight: '900',
-                                textDecoration: 'none',
-                                textTransform: 'uppercase',
-                                letterSpacing: '1px',
+                                fontWeight: 900,
                                 fontSize: '0.9rem',
-                                boxShadow: '0 10px 30px rgba(254, 44, 85, 0.5)',
-                                whiteSpace: 'nowrap'
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                                cursor: 'pointer'
+                            }}
+                            onClick={() => {
+                                const v = document.querySelector('#vid');
+                                if (v) {
+                                    v.play();
+                                    v.muted = false;
+                                    setIsMuted(false);
+                                }
                             }}
                         >
-                            {ad.ctaText}
-                        </a>
-                    </motion.div>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                            </svg>
+                            TAP TO ENABLE SOUND
+                        </motion.button>
+                    </div>
                 )}
 
-                <div style={{
-                    position: 'absolute',
-                    bottom: '20px',
-                    left: '0',
-                    width: '100%',
-                    textAlign: 'center',
-                    zIndex: 1000,
-                    pointerEvents: 'none'
-                }}>
-                    <button style={{
-                        pointerEvents: 'auto',
-                        padding: '10px 20px',
-                        background: 'white',
-                        border: 'none',
-                        borderRadius: '20px',
-                        fontWeight: 'bold'
-                    }} onClick={() => {
-                        const v = document.querySelector('#vid');
-                        if (v) {
-                            v.play();
-                            v.muted = false;
-                        }
-                    }}>
-                        Tap to Play Video
-                    </button>
-                </div>
+                {/* Lead Capture Modal */}
+                <AnimatePresence>
+                    {showLeadModal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            style={{
+                                position: 'fixed',
+                                inset: 0,
+                                zIndex: 9999,
+                                background: 'rgba(0,0,0,0.9)',
+                                backdropFilter: 'blur(10px)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '1.5rem'
+                            }}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, y: 20 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0.9, y: 20 }}
+                                style={{
+                                    background: '#0a0a0a',
+                                    borderRadius: '24px',
+                                    padding: '2.5rem',
+                                    maxWidth: '450px',
+                                    width: '100%',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+                                }}
+                            >
+                                {!leadSubmitted ? (
+                                    <>
+                                        <button
+                                            onClick={() => setShowLeadModal(false)}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '1.5rem',
+                                                right: '1.5rem',
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#a1a1aa',
+                                                fontSize: '1.5rem',
+                                                cursor: 'pointer',
+                                                padding: 0,
+                                                lineHeight: 1
+                                            }}
+                                        >
+                                            ✕
+                                        </button>
+
+                                        <h2 style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '0.5rem', color: 'white' }}>
+                                            {ad.title}
+                                        </h2>
+                                        <p style={{ color: '#71717a', marginBottom: '2rem', fontSize: '0.9rem' }}>
+                                            Share your details to connect with us
+                                        </p>
+
+                                        <form
+                                            onSubmit={async (e) => {
+                                                e.preventDefault();
+                                                setLeadSubmitting(true);
+
+                                                try {
+                                                    const res = await fetch('/api/leads/capture', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            adId: ad._id,
+                                                            leadData: leadFormData,
+                                                            source: 'ar_view'
+                                                        })
+                                                    });
+
+                                                    if (res.ok) {
+                                                        setLeadSubmitted(true);
+                                                        // Track lead event
+                                                        fetch('/api/track', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ slug: ad.slug, type: 'lead' })
+                                                        });
+                                                    } else {
+                                                        alert('Failed to submit. Please try again.');
+                                                    }
+                                                } catch (error) {
+                                                    alert('Error submitting form');
+                                                } finally {
+                                                    setLeadSubmitting(false);
+                                                }
+                                            }}
+                                            style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+                                        >
+                                            {ad.leadFormFields?.includes('name') && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#a1a1aa', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Name *</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        value={leadFormData.name || ''}
+                                                        onChange={(e) => setLeadFormData({ ...leadFormData, name: e.target.value })}
+                                                        style={{ width: '100%', padding: '0.875rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '1rem' }}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {ad.leadFormFields?.includes('email') && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#a1a1aa', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Email *</label>
+                                                    <input
+                                                        type="email"
+                                                        required
+                                                        value={leadFormData.email || ''}
+                                                        onChange={(e) => setLeadFormData({ ...leadFormData, email: e.target.value })}
+                                                        style={{ width: '100%', padding: '0.875rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '1rem' }}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {ad.leadFormFields?.includes('phone') && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#a1a1aa', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Phone</label>
+                                                    <input
+                                                        type="tel"
+                                                        value={leadFormData.phone || ''}
+                                                        onChange={(e) => setLeadFormData({ ...leadFormData, phone: e.target.value })}
+                                                        style={{ width: '100%', padding: '0.875rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '1rem' }}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {ad.leadFormFields?.includes('company') && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#a1a1aa', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Company</label>
+                                                    <input
+                                                        type="text"
+                                                        value={leadFormData.company || ''}
+                                                        onChange={(e) => setLeadFormData({ ...leadFormData, company: e.target.value })}
+                                                        style={{ width: '100%', padding: '0.875rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '1rem' }}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {ad.leadFormFields?.includes('message') && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#a1a1aa', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Message</label>
+                                                    <textarea
+                                                        rows={3}
+                                                        value={leadFormData.message || ''}
+                                                        onChange={(e) => setLeadFormData({ ...leadFormData, message: e.target.value })}
+                                                        style={{ width: '100%', padding: '0.875rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '1rem', resize: 'vertical' }}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <button
+                                                type="submit"
+                                                disabled={leadSubmitting}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '1rem',
+                                                    background: '#FFD700',
+                                                    color: '#000',
+                                                    border: 'none',
+                                                    borderRadius: '12px',
+                                                    fontSize: '1rem',
+                                                    fontWeight: 900,
+                                                    cursor: leadSubmitting ? 'not-allowed' : 'pointer',
+                                                    opacity: leadSubmitting ? 0.6 : 1,
+                                                    marginTop: '0.5rem'
+                                                }}
+                                            >
+                                                {leadSubmitting ? 'Submitting...' : 'Submit'}
+                                            </button>
+
+                                            <p style={{ fontSize: '0.7rem', color: '#52525b', textAlign: 'center', marginTop: '0.5rem' }}>
+                                                Your information will be used to contact you about this campaign.
+                                            </p>
+                                        </form>
+                                    </>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✓</div>
+                                        <h3 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '0.5rem', color: 'white' }}>Thank You!</h3>
+                                        <p style={{ color: '#71717a', marginBottom: '2rem' }}>We'll be in touch soon.</p>
+                                        <button
+                                            onClick={() => {
+                                                setShowLeadModal(false);
+                                                setLeadSubmitted(false);
+                                                setLeadFormData({});
+                                            }}
+                                            style={{
+                                                padding: '0.75rem 2rem',
+                                                background: 'rgba(255,255,255,0.1)',
+                                                color: 'white',
+                                                border: '1px solid rgba(255,255,255,0.2)',
+                                                borderRadius: '12px',
+                                                fontSize: '0.9rem',
+                                                fontWeight: 700,
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                )}
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </>
     );

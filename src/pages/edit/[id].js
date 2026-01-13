@@ -3,10 +3,9 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Upload, Zap, Eye, RotateCcw, Maximize, Palette, ChevronRight, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Upload, Zap, Eye, RotateCcw, Maximize, Palette, ChevronRight, Save, Trash2, Crown, Lock, Info, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
-import { Crown, Lock } from 'lucide-react';
 
 const ensureAbsoluteUrl = (url) => {
     if (!url) return '';
@@ -23,15 +22,28 @@ export default function EditCampaign() {
     const [submitting, setSubmitting] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
     const [sub, setSub] = useState({ plan: 'basic', status: 'active' });
+    const [isMaximized, setIsMaximized] = useState(false);
+    const [imageAR, setImageAR] = useState(1);
 
     const [form, setForm] = useState({ title: '', category: 'other', image: null, video: null, ctaText: '', ctaUrl: '' });
     const [previews, setPreviews] = useState({ image: null, video: null });
     const [existingUrls, setExistingUrls] = useState({ image: '', video: '', target: '' });
 
+    const [ctaSettings, setCtaSettings] = useState({
+        positionX: 0,
+        positionY: -0.5,
+        scale: 0.15,
+        color: '#FFD700',
+        borderRadius: 4
+    });
+
     const [overlay, setOverlay] = useState({
         scale: 0.8,
         opacity: 0.9,
+        aspectRatio: 1.77,
         rotation: 0,
+        rotationX: 0,
+        rotationY: 0,
         positionX: 0,
         positionY: 0
     });
@@ -60,13 +72,45 @@ export default function EditCampaign() {
                     });
                     setPreviews({ image: ad.imageUrl, video: ad.videoUrl });
                     setExistingUrls({ image: ad.imageUrl, video: ad.videoUrl, target: ad.targetUrl });
-                    if (ad.overlay) setOverlay(ad.overlay);
+
+                    // Calculate initial imageAR
+                    const img = new Image();
+                    img.src = ad.imageUrl;
+                    img.onload = () => setImageAR(img.width / img.height);
+
+                    if (ad.overlay) {
+                        setOverlay({
+                            ...overlay,
+                            ...ad.overlay,
+                            rotationX: ad.overlay.rotationX || 0,
+                            rotationY: ad.overlay.rotationY || 0,
+                            aspectRatio: ad.overlay.aspectRatio || 1.77
+                        });
+                    }
+
+                    // Handle Spatial CTA settings (legacy fallback)
+                    setCtaSettings({
+                        positionX: ad.ctaPositionX !== undefined ? ad.ctaPositionX : 0,
+                        positionY: ad.ctaPositionY !== undefined ? ad.ctaPositionY : -0.5,
+                        scale: ad.ctaScale !== undefined ? ad.ctaScale : 0.15,
+                        color: ad.ctaColor || '#FFD700',
+                        borderRadius: ad.ctaBorderRadius !== undefined ? ad.ctaBorderRadius : 4
+                    });
+
                 } else {
                     alert('Failed to load ad details');
                     router.push('/dashboard');
                 }
 
-                if (subData.success) setSub(subData.data);
+                if (subData.success) {
+                    setSub(subData.data);
+                    const isPro = subData.data.status === 'active' && (subData.data.plan === 'pro' || subData.data.plan === 'enterprise');
+                    if (!isPro) {
+                        alert('This page is reserved for Pro members only! 🚀');
+                        router.push('/dashboard');
+                        return;
+                    }
+                }
             } catch (err) {
                 console.error(err);
             } finally {
@@ -80,13 +124,30 @@ export default function EditCampaign() {
         const file = e.target.files[0];
         if (file) {
             setForm(prev => ({ ...prev, [type]: file }));
-            setPreviews(prev => ({ ...prev, [type]: URL.createObjectURL(file) }));
+            const previewUrl = URL.createObjectURL(file);
+            setPreviews(prev => ({ ...prev, [type]: previewUrl }));
+
+            if (type === 'image') {
+                const img = new Image();
+                img.src = previewUrl;
+                img.onload = () => setImageAR(img.width / img.height);
+            }
+
+            if (type === 'video') {
+                const video = document.createElement('video');
+                video.src = previewUrl;
+                video.onloadedmetadata = () => {
+                    const ar = video.videoWidth / video.videoHeight;
+                    setOverlay(prev => ({ ...prev, aspectRatio: ar }));
+                };
+            }
         }
     };
 
     const uploadToCloudinary = async (file, type) => {
         const signRes = await fetch('/api/sign-cloudinary');
         const signData = await signRes.json();
+        if (signRes.status !== 200) throw new Error('Failed to get signature');
 
         const formData = new FormData();
         formData.append('file', file);
@@ -145,7 +206,6 @@ export default function EditCampaign() {
             let videoUrl = existingUrls.video;
             let targetUrl = existingUrls.target;
 
-            // Only re-upload and re-compile if image changed
             if (form.image) {
                 setUploadStatus('Compiling new AR Mindset...');
                 const mindBlob = await compileImageTarget(form.image);
@@ -158,7 +218,6 @@ export default function EditCampaign() {
                 targetUrl = newTarget;
             }
 
-            // Only upload video if changed
             if (form.video) {
                 setUploadStatus('Uploading new video overlay...');
                 videoUrl = await uploadToCloudinary(form.video, 'video');
@@ -176,7 +235,12 @@ export default function EditCampaign() {
                     targetUrl,
                     overlay,
                     ctaText: form.ctaText,
-                    ctaUrl: ensureAbsoluteUrl(form.ctaUrl)
+                    ctaUrl: ensureAbsoluteUrl(form.ctaUrl),
+                    ctaPositionX: ctaSettings.positionX,
+                    ctaPositionY: ctaSettings.positionY,
+                    ctaScale: ctaSettings.scale,
+                    ctaColor: ctaSettings.color,
+                    ctaBorderRadius: ctaSettings.borderRadius
                 }),
             });
 
@@ -199,229 +263,463 @@ export default function EditCampaign() {
         } catch (err) { console.error(err); }
     };
 
-    if (loading) return <div className="container" style={{ marginTop: '5rem' }}>Loading Campaign...</div>;
+    if (loading) return <div className="container" style={{ marginTop: '10rem', textAlign: 'center' }}>
+        <div className="spinner" style={{ margin: '0 auto 1.5rem auto', width: '3rem', height: '3rem' }} />
+        <h2 style={{ opacity: 0.5 }}>Synchronizing Spatial Data...</h2>
+    </div>;
 
     return (
-        <div className="container" style={{ marginTop: '3rem', paddingBottom: '5rem' }}>
+        <div style={{ paddingBottom: '8rem' }}>
             <Script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js" strategy="beforeInteractive" />
 
-            <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a1a1aa', marginBottom: '2rem', fontSize: '0.9rem' }}>
-                <ArrowLeft size={16} /> Back to Dashboard
-            </Link>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '3rem' }}>
-                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h1>Edit Campaign</h1>
-                        <button onClick={handleDelete} className="btn btn-secondary" style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)', gap: '0.5rem' }}>
-                            <Trash2 size={16} /> Delete
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '2rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '4rem' }}>
+                <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a1a1aa', fontSize: '0.9rem', fontWeight: 700 }}>
+                        <ArrowLeft size={16} /> Exit Control Center
+                    </Link>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button onClick={handleDelete} style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Trash2 size={16} /> Scrap Campaign
                         </button>
                     </div>
+                </div>
+            </div>
 
-                    {sub.plan === 'pro' ? (
-                        <div className="glass-card" style={{ padding: '2rem' }}>
-                            {/* ... existing form fields ... */}
-                            <div className="form-group">
-                                <label className="label">Campaign Name</label>
-                                <input
-                                    type="text"
-                                    className="input"
-                                    value={form.title}
-                                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                                />
-                            </div>
+            <div className="container">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '4rem' }}>
+                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+                        <div style={{ marginBottom: '3rem' }}>
+                            <h1 style={{ fontSize: '3rem', fontWeight: 900, letterSpacing: '-2px', marginBottom: '0.5rem' }}>Edit Realities</h1>
+                            <p style={{ color: '#71717a', fontSize: '1.1rem' }}>Refine your spatial parameters and brand interaction.</p>
+                        </div>
 
-                            <div className="form-group">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
-                                    <label className="label" style={{ marginBottom: 0 }}>Category / Genre</label>
-                                    {sub.plan !== 'pro' && (
-                                        <Link href="/pricing" style={{ fontSize: '0.65rem', color: '#f59e0b', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                            <Crown size={10} /> Pro Feature
-                                        </Link>
-                                    )}
-                                </div>
-                                <div style={{ position: 'relative' }}>
-                                    <select
-                                        className="input"
-                                        value={form.category}
-                                        onChange={(e) => setForm({ ...form, category: e.target.value })}
-                                        disabled={sub.plan !== 'pro'}
-                                        style={{
-                                            background: '#18181b',
-                                            color: sub.plan === 'pro' ? 'white' : '#71717a',
-                                            opacity: sub.plan === 'pro' ? 1 : 0.7,
-                                            cursor: sub.plan === 'pro' ? 'pointer' : 'not-allowed',
-                                            paddingRight: '2.5rem'
-                                        }}
-                                    >
-                                        <option value="tech">Tech & Innovation</option>
-                                        <option value="comedy">Comedy & Fun</option>
-                                        <option value="drama">Drama & Story</option>
-                                        <option value="lifestyle">Lifestyle</option>
-                                        <option value="fashion">Fashion & Beauty</option>
-                                        <option value="education">Education</option>
-                                        <option value="entertainment">Entertainment</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                    {sub.plan !== 'pro' && (
-                                        <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#71717a' }}>
-                                            <Lock size={16} />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1rem' }}>
+                        {sub.plan === 'pro' ? (
+                            <div className="glass-card" style={{ padding: '2.5rem' }}>
                                 <div className="form-group">
-                                    <label className="label">CTA Button Text (Optional)</label>
+                                    <label className="label">Campaign Registry Name</label>
                                     <input
                                         type="text"
                                         className="input"
-                                        placeholder="e.g. Visit Shop"
-                                        maxLength={20}
-                                        value={form.ctaText}
-                                        onChange={(e) => setForm({ ...form, ctaText: e.target.value })}
+                                        value={form.title}
+                                        onChange={(e) => setForm({ ...form, title: e.target.value })}
+                                        style={{ height: '3.5rem', fontSize: '1.1rem' }}
                                     />
                                 </div>
-                                <div className="form-group">
-                                    <label className="label">Destination URL</label>
-                                    <input
-                                        type="url"
-                                        className="input"
-                                        placeholder="https://example.com"
-                                        value={form.ctaUrl}
-                                        onChange={(e) => setForm({ ...form, ctaUrl: e.target.value })}
-                                    />
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+                                    <div className="form-group">
+                                        <label className="label">Category</label>
+                                        <select
+                                            className="input"
+                                            value={form.category}
+                                            onChange={(e) => setForm({ ...form, category: e.target.value })}
+                                            style={{ height: '3.5rem' }}
+                                        >
+                                            <option value="tech">Tech & Innovation</option>
+                                            <option value="hospitality">Hospitality</option>
+                                            <option value="realestate">Real Estate</option>
+                                            <option value="fashion">Fashion & Beauty</option>
+                                            <option value="entertainment">Entertainment</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="label">Interactive Button Text</label>
+                                        <input
+                                            type="text"
+                                            className="input"
+                                            placeholder="e.g. Visit Store"
+                                            value={form.ctaText}
+                                            onChange={(e) => setForm({ ...form, ctaText: e.target.value })}
+                                            style={{ height: '3.5rem' }}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                 <div className="form-group">
-                                    <label className="label">Replace Target Image (Optional)</label>
-                                    <label className="input" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1.5rem', borderStyle: 'dashed', cursor: 'pointer' }}>
-                                        <Upload size={20} style={{ marginBottom: '0.5rem', color: '#3b82f6' }} />
-                                        <span style={{ fontSize: '0.75rem', textAlign: 'center' }}>{form.image ? form.image.name : 'Choose new image'}</span>
-                                        <input type="file" hidden accept="image/*" onChange={(e) => handleFileChange(e, 'image')} />
-                                    </label>
+                                    <label className="label">Action URL Destination</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            type="url"
+                                            className="input"
+                                            placeholder="https://yourbrand.com/action"
+                                            value={form.ctaUrl}
+                                            onChange={(e) => setForm({ ...form, ctaUrl: e.target.value })}
+                                            style={{ height: '3.5rem', paddingLeft: '1rem' }}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="form-group">
-                                    <label className="label">Replace Video (Optional)</label>
-                                    <label className="input" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1.5rem', borderStyle: 'dashed', cursor: 'pointer' }}>
-                                        <Zap size={20} style={{ marginBottom: '0.5rem', color: '#f59e0b' }} />
-                                        <span style={{ fontSize: '0.75rem', textAlign: 'center' }}>{form.video ? form.video.name : 'Choose new video'}</span>
-                                        <input type="file" hidden accept="video/*" onChange={(e) => handleFileChange(e, 'video')} />
-                                    </label>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '3rem' }}>
+                                    <div className="form-group">
+                                        <label className="label">Swap Target Image</label>
+                                        <label className="input" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem', borderStyle: 'dashed', cursor: 'pointer', borderColor: 'rgba(59, 130, 246, 0.3)' }}>
+                                            <Upload size={24} style={{ marginBottom: '0.75rem', color: '#3b82f6' }} />
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{form.image ? form.image.name : 'Choose target'}</span>
+                                            <input type="file" hidden accept="image/*" onChange={(e) => handleFileChange(e, 'image')} />
+                                        </label>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="label">Swap Video Overlay</label>
+                                        <label className="input" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem', borderStyle: 'dashed', cursor: 'pointer', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
+                                            <Zap size={24} style={{ marginBottom: '0.75rem', color: '#f59e0b' }} />
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{form.video ? form.video.name : 'Choose video'}</span>
+                                            <input type="file" hidden accept="video/*" onChange={(e) => handleFileChange(e, 'video')} />
+                                        </label>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <button
-                                onClick={handleSubmit}
-                                className="btn btn-primary"
-                                style={{ width: '100%', marginTop: '1rem', height: '3.5rem', gap: '0.5rem' }}
-                                disabled={submitting || !form.title}
-                            >
-                                {submitting ? (
-                                    <>
-                                        <div className="spinner" /> {uploadStatus}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save size={20} /> Update Campaign
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', border: '2px solid rgba(245, 158, 11, 0.3)', background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(245, 158, 11, 0.05) 100%)' }}>
-                            <div style={{
-                                width: '60px', height: '60px', borderRadius: '18px', background: 'rgba(245, 158, 11, 0.1)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', margin: '0 auto 1.5rem auto'
-                            }}>
-                                <Crown size={30} />
-                            </div>
-                            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Editing is a Pro Feature</h2>
-                            <p style={{ color: '#a1a1aa', marginBottom: '2rem', fontSize: '0.9rem' }}>
-                                Unlock the ability to refine and update your AR stories anytime.
-                            </p>
-                            <Link href="/pricing" className="btn btn-primary" style={{ height: '3rem', fontWeight: 900 }}>
-                                Upgrade to Pro Now
-                            </Link>
-                        </div>
-                    )}
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                    <div className="glass-card" style={{ padding: '1.5rem', height: '100%' }}>
-                        <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Palette size={20} /> Live Calibration
-                        </h3>
-
-                        <div style={{ background: '#000', borderRadius: '1rem', overflow: 'hidden', position: 'relative', height: '280px', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                            {previews.image && (
-                                <>
-                                    <img src={previews.image} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                    {previews.video && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '50%',
-                                            left: '50%',
-                                            width: '60%',
-                                            height: '40%',
-                                            transform: `translate(-50%, -50%) translate(${overlay.positionX * 100}%, ${-overlay.positionY * 100}%) rotate(${overlay.rotation}deg) scale(${overlay.scale})`,
-                                            opacity: overlay.opacity,
-                                            border: '1px solid #3b82f6',
-                                            boxShadow: '0 0 15px rgba(59, 130, 246, 0.5)',
-                                            pointerEvents: 'none'
-                                        }}>
-                                            <video src={previews.video} muted autoPlay loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <button
+                                    onClick={handleSubmit}
+                                    className="btn btn-primary"
+                                    style={{ width: '100%', marginTop: '3rem', height: '4.5rem', fontSize: '1.2rem', fontWeight: 900, borderRadius: '16px' }}
+                                    disabled={submitting || !form.title}
+                                >
+                                    {submitting ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <div className="spinner" /> {uploadStatus}
                                         </div>
+                                    ) : (
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                            <Save size={22} /> Commit Changes
+                                        </span>
                                     )}
-                                </>
-                            )}
-                        </div>
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="glass-card" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                                <Crown size={48} className="gold-text" style={{ marginBottom: '1.5rem', opacity: 0.5 }} />
+                                <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '1rem' }}>Editing is a Pro Reality</h2>
+                                <p style={{ color: '#71717a', fontSize: '1.1rem', marginBottom: '2.5rem', maxWidth: '400px', margin: '0 auto 2.5rem auto' }}>
+                                    Unlock the ability to update assets and refine spatial calibration for existing campaigns.
+                                </p>
+                                <Link href="/pricing" className="btn btn-primary" style={{ padding: '1rem 3rem' }}>Upgrade to Pro</Link>
+                            </div>
+                        )}
+                    </motion.div>
 
-                        <div className="form-group">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <label className="label">Scale</label>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{overlay.scale.toFixed(1)}x</span>
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                        <div className="glass-card" style={{ padding: '2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                    <Palette size={20} className="gold-text" /> Calibration Hub
+                                </h3>
+                                <button
+                                    onClick={() => setIsMaximized(true)}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid rgba(255,255,255,0.1)', padding: '6px 12px', borderRadius: '8px',
+                                        color: '#fff', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700
+                                    }}
+                                >
+                                    <Maximize size={14} /> Maximize
+                                </button>
                             </div>
-                            <input type="range" className="input-range" min="0.1" max="2" step="0.1" value={overlay.scale} onChange={(e) => setOverlay({ ...overlay, scale: parseFloat(e.target.value) })} />
-                        </div>
 
-                        <div className="form-group">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <label className="label">Transparency</label>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{Math.round(overlay.opacity * 100)}%</span>
-                            </div>
-                            <input type="range" className="input-range" min="0" max="1" step="0.1" value={overlay.opacity} onChange={(e) => setOverlay({ ...overlay, opacity: parseFloat(e.target.value) })} />
-                        </div>
+                            <div style={{ background: '#000', borderRadius: '1.5rem', overflow: 'hidden', position: 'relative', height: '320px', marginBottom: '2.5rem', border: '1px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {previews.image ? (
+                                    <div style={{ position: 'relative', width: imageAR > 1.2 ? '90%' : 'auto', height: imageAR <= 1.2 ? '90%' : 'auto', aspectRatio: `${imageAR}` }}>
+                                        <img src={previews.image} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                        {previews.video && (
+                                            <div
+                                                id="calibration-stage"
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '50%',
+                                                    left: '50%',
+                                                    width: `100%`,
+                                                    aspectRatio: `${overlay.aspectRatio}`,
+                                                    height: 'auto',
+                                                    transform: `
+                                                        translate(-50%, -50%) 
+                                                        translate(${overlay.positionX * 100}%, ${-overlay.positionY * 100 * imageAR}%) 
+                                                        perspective(1000px) 
+                                                        rotateX(${overlay.rotationX}deg) 
+                                                        rotateY(${overlay.rotationY}deg) 
+                                                        rotateZ(${overlay.rotation}deg) 
+                                                        scale(${overlay.scale})
+                                                    `,
+                                                    opacity: overlay.opacity,
+                                                    border: '2px solid #FFD700',
+                                                    boxShadow: '0 0 30px rgba(255, 215, 0, 0.4)',
+                                                    pointerEvents: 'none',
+                                                    borderRadius: '4px',
+                                                    zIndex: 5
+                                                }}
+                                            >
+                                                <video src={previews.video} muted autoPlay loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
 
-                        <div className="form-group">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <label className="label">Orientation</label>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{overlay.rotation}°</span>
-                            </div>
-                            <input type="range" className="input-range" min="0" max="360" step="1" value={overlay.rotation} onChange={(e) => setOverlay({ ...overlay, rotation: parseInt(e.target.value) })} />
-                        </div>
+                                                {/* Spatial CTA Button */}
+                                                {form.ctaText && (
+                                                    <motion.div
+                                                        drag
+                                                        dragMomentum={false}
+                                                        onDragEnd={(e, info) => {
+                                                            const stage = document.getElementById(isMaximized ? 'maximize-stage' : 'calibration-stage');
+                                                            if (!stage) return;
+                                                            const rect = stage.getBoundingClientRect();
+                                                            const deltaX = info.offset.x / rect.width;
+                                                            const deltaY = -info.offset.y / rect.height;
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <div className="form-group">
-                                <label className="label">Offset X</label>
-                                <input type="number" className="input" step="0.05" value={overlay.positionX} onChange={(e) => setOverlay({ ...overlay, positionX: parseFloat(e.target.value) })} />
+                                                            setCtaSettings(prev => ({
+                                                                ...prev,
+                                                                positionX: Math.round((prev.positionX + deltaX) * 100) / 100,
+                                                                positionY: Math.round((prev.positionY + (deltaY / overlay.aspectRatio)) * 100) / 100
+                                                            }));
+                                                        }}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: '50%',
+                                                            left: '50%',
+                                                            zIndex: 200,
+                                                            cursor: 'grab',
+                                                            pointerEvents: 'auto',
+                                                            x: `${ctaSettings.positionX * 100}%`,
+                                                            y: `${-ctaSettings.positionY * 100 * (overlay.aspectRatio)}%`,
+                                                            transform: 'translate(-50%, -50%)',
+                                                            background: ctaSettings.color || '#FFD700',
+                                                            color: '#000',
+                                                            padding: '6px 16px',
+                                                            borderRadius: `${ctaSettings.borderRadius || 4}px`,
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: 900,
+                                                            whiteSpace: 'nowrap',
+                                                            boxShadow: `0 0 20px ${(ctaSettings.color || '#FFD700')}80`,
+                                                            border: '2px solid #fff'
+                                                        }}
+                                                        whileTap={{ cursor: 'grabbing', scale: 1.1 }}
+                                                    >
+                                                        {form.ctaText}
+                                                    </motion.div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#3f3f46', gap: '1rem' }}>
+                                        <Info size={32} opacity={0.3} />
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Injecting Realities...</span>
+                                    </div>
+                                )}
                             </div>
-                            <div className="form-group">
-                                <label className="label">Offset Y</label>
-                                <input type="number" className="input" step="0.05" value={overlay.positionY} onChange={(e) => setOverlay({ ...overlay, positionY: parseFloat(e.target.value) })} />
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                {[
+                                    { label: 'Scale Factor', key: 'scale', min: 0.1, max: 4, step: 0.05, unit: 'x' },
+                                    { label: 'Transparency', key: 'opacity', min: 0, max: 1, step: 0.05, unit: '%' },
+                                    { label: 'Rotation Z', key: 'rotation', min: -180, max: 180, step: 1, unit: '°' },
+                                    { label: 'Rotation X', key: 'rotationX', min: -90, max: 90, step: 1, unit: '°' },
+                                    { label: 'Rotation Y', key: 'rotationY', min: -90, max: 90, step: 1, unit: '°' }
+                                ].map((ctrl) => (
+                                    <div key={ctrl.key} className="form-group" style={{ marginBottom: 0 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                            <label className="label" style={{ marginBottom: 0 }}>{ctrl.label}</label>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'white' }}>
+                                                {ctrl.key === 'opacity' ? Math.round(overlay[ctrl.key] * 100) : overlay[ctrl.key].toFixed(1)}{ctrl.unit}
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            className="input-range"
+                                            min={ctrl.min}
+                                            max={ctrl.max}
+                                            step={ctrl.step}
+                                            value={overlay[ctrl.key]}
+                                            onChange={(e) => setOverlay({ ...overlay, [ctrl.key]: parseFloat(e.target.value) })}
+                                        />
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    </div>
-                </motion.div>
+                    </motion.div>
+                </div>
             </div>
 
+            <AnimatePresence>
+                {isMaximized && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="maximize-overlay"
+                    >
+                        <div className="maximize-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-1px' }}>High-Fidelity Calibration</h2>
+                                <div style={{ padding: '4px 12px', background: 'rgba(255, 215, 0, 0.1)', color: '#FFD700', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                    Precision Tracking Active
+                                </div>
+                            </div>
+                            <button onClick={() => setIsMaximized(false)} className="btn btn-secondary" style={{ padding: '0.6rem 1.5rem', borderRadius: '10px' }}>
+                                Exit Precision Mode
+                            </button>
+                        </div>
+
+                        <div className="maximize-content">
+                            <div className="maximize-preview-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                {previews.image ? (
+                                    <div style={{ position: 'relative', width: imageAR > 1 ? '85%' : 'auto', height: imageAR <= 1 ? '85%' : 'auto', aspectRatio: `${imageAR}` }}>
+                                        <img src={previews.image} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                        {previews.video && (
+                                            <div
+                                                id="maximize-stage"
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '50%',
+                                                    left: '50%',
+                                                    width: `100%`,
+                                                    aspectRatio: `${overlay.aspectRatio}`,
+                                                    height: 'auto',
+                                                    transform: `
+                                                        translate(-50%, -50%) 
+                                                        translate(${overlay.positionX * 100}%, ${-overlay.positionY * 100 * imageAR}%) 
+                                                        perspective(1500px) 
+                                                        rotateX(${overlay.rotationX}deg) 
+                                                        rotateY(${overlay.rotationY}deg) 
+                                                        rotateZ(${overlay.rotation}deg) 
+                                                        scale(${overlay.scale})
+                                                    `,
+                                                    opacity: overlay.opacity,
+                                                    border: '4px solid #FFD700',
+                                                    boxShadow: '0 0 50px rgba(255, 215, 0, 0.6)',
+                                                    pointerEvents: 'none',
+                                                    borderRadius: '8px',
+                                                    zIndex: 5
+                                                }}
+                                            >
+                                                <video src={previews.video} muted autoPlay loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                {form.ctaText && (
+                                                    <motion.div
+                                                        drag
+                                                        dragMomentum={false}
+                                                        onDragEnd={(e, info) => {
+                                                            const stage = document.getElementById('maximize-stage');
+                                                            if (!stage) return;
+                                                            const rect = stage.getBoundingClientRect();
+                                                            const deltaX = info.offset.x / rect.width;
+                                                            const deltaY = -info.offset.y / rect.height;
+                                                            setCtaSettings(prev => ({
+                                                                ...prev,
+                                                                positionX: Math.round((prev.positionX + deltaX) * 100) / 100,
+                                                                positionY: Math.round((prev.positionY + (deltaY / overlay.aspectRatio)) * 100) / 100
+                                                            }));
+                                                        }}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: '50%',
+                                                            left: '50%',
+                                                            zIndex: 500,
+                                                            cursor: 'grab',
+                                                            pointerEvents: 'auto',
+                                                            x: `${ctaSettings.positionX * 100}%`,
+                                                            y: `${-ctaSettings.positionY * 100 * (overlay.aspectRatio)}%`,
+                                                            transform: 'translate(-50%, -50%)',
+                                                            background: ctaSettings.color || '#FFD700',
+                                                            color: '#000',
+                                                            padding: '10px 30px',
+                                                            borderRadius: `${ctaSettings.borderRadius || 4}px`,
+                                                            fontSize: '1rem',
+                                                            fontWeight: 900,
+                                                            whiteSpace: 'nowrap',
+                                                            boxShadow: `0 0 40px ${(ctaSettings.color || '#FFD700')}80`,
+                                                            border: '2px solid #fff'
+                                                        }}
+                                                        whileTap={{ cursor: 'grabbing', scale: 1.1 }}
+                                                    >
+                                                        {form.ctaText}
+                                                    </motion.div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div style={{ color: '#3f3f46' }}>No Assets to Preview</div>
+                                )}
+                            </div>
+
+                            <div className="maximize-sidebar">
+                                <section style={{ marginBottom: '3rem' }}>
+                                    <h4 style={{ textTransform: 'uppercase', fontSize: '0.7rem', color: '#52525b', letterSpacing: '2px', marginBottom: '1.5rem' }}>CTA Precision</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <div style={{ fontSize: '0.6rem', color: '#52525b', marginBottom: '4px' }}>LATERAL X</div>
+                                            <div style={{ fontFamily: 'monospace', fontWeight: 900, color: '#FFD700' }}>{ctaSettings.positionX.toFixed(4)}</div>
+                                        </div>
+                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <div style={{ fontSize: '0.6rem', color: '#52525b', marginBottom: '4px' }}>VERTICAL Y</div>
+                                            <div style={{ fontFamily: 'monospace', fontWeight: 900, color: '#FFD700' }}>{ctaSettings.positionY.toFixed(4)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label className="label">Button Scale</label>
+                                        <input type="range" className="input-range" min="0.05" max="1" step="0.01" value={ctaSettings.scale} onChange={(e) => setCtaSettings({ ...ctaSettings, scale: parseFloat(e.target.value) })} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="label">Theme Hex</label>
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <input type="color" className="input" style={{ width: '60px', padding: '4px', height: '45px' }} value={ctaSettings.color} onChange={(e) => setCtaSettings({ ...ctaSettings, color: e.target.value })} />
+                                            <input type="text" className="input" value={ctaSettings.color} onChange={(e) => setCtaSettings({ ...ctaSettings, color: e.target.value })} />
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h4 style={{ textTransform: 'uppercase', fontSize: '0.7rem', color: '#52525b', letterSpacing: '2px', marginBottom: '1.5rem' }}>Overlay Controls</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div className="form-group">
+                                            <label className="label">Offset X</label>
+                                            <input type="number" step="0.01" className="input" value={overlay.positionX} onChange={(e) => setOverlay({ ...overlay, positionX: parseFloat(e.target.value) })} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="label">Offset Y</label>
+                                            <input type="number" step="0.01" className="input" value={overlay.positionY} onChange={(e) => setOverlay({ ...overlay, positionY: parseFloat(e.target.value) })} />
+                                        </div>
+                                    </div>
+                                    <button onClick={() => {
+                                        setOverlay(prev => ({ ...prev, positionX: 0, positionY: 0 }));
+                                        setCtaSettings(prev => ({ ...prev, positionX: 0, positionY: -0.5 }));
+                                    }} className="btn btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>
+                                        Reset Position
+                                    </button>
+                                </section>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <style jsx>{`
-                .input-range { width: 100%; -webkit-appearance: none; background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; outline: none; }
-                .input-range::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: #fff; border-radius: 50%; cursor: pointer; }
-                .spinner { width: 1rem; height: 1rem; border: 2px solid rgba(255,255,255,0.2); border-top: 2px solid #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+                .input-range {
+                    width: 100%;
+                    -webkit-appearance: none;
+                    background: rgba(255,255,255,0.05);
+                    height: 6px;
+                    border-radius: 10px;
+                    outline: none;
+                }
+                .input-range::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    width: 20px;
+                    height: 20px;
+                    background: #fff;
+                    border: 4px solid #000;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                    transition: transform 0.1s;
+                }
+                .input-range::-webkit-slider-thumb:active {
+                    transform: scale(1.2);
+                }
+                .spinner {
+                    width: 1.25rem;
+                    height: 1.25rem;
+                    border: 3px solid rgba(255,255,255,0.1);
+                    border-top: 3px solid #FFD700;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
         </div>

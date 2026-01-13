@@ -7,14 +7,17 @@ import Link from 'next/link';
 
 export default function Checkout() {
     const router = useRouter();
-    const { plan } = router.query;
+    const { plan, type, amount } = router.query;
     const [method, setMethod] = useState('qr');
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState(1);
 
-    if (!plan && typeof window !== 'undefined') {
+    const isWallet = type === 'wallet';
+    const displayAmount = isWallet ? amount : (plan === 'pro' ? 1999 : 0);
+
+    if (!plan && !isWallet && typeof window !== 'undefined') {
         router.push('/pricing');
     }
 
@@ -41,6 +44,10 @@ export default function Checkout() {
             method: 'POST', body: formData
         });
         const uploadData = await uploadRes.json();
+        if (!uploadData.secure_url) {
+            console.error('Cloudinary Upload Error:', uploadData);
+            throw new Error(uploadData.error?.message || 'Failed to upload image to Cloudinary');
+        }
         return uploadData.secure_url;
     };
 
@@ -49,15 +56,24 @@ export default function Checkout() {
         setLoading(true);
         try {
             const proofUrl = await uploadToCloudinary(file);
-            const res = await fetch('/api/subscriptions', {
+
+            const endpoint = isWallet ? '/api/user/wallet/transactions' : '/api/subscriptions';
+            const payload = isWallet ? {
+                type: 'topup',
+                amount: displayAmount,
+                paymentProof: proofUrl
+            } : {
+                plan,
+                paymentProof: proofUrl,
+                amount: displayAmount
+            };
+
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    plan,
-                    paymentProof: proofUrl,
-                    amount: plan === 'pro' ? 1999 : 0
-                })
+                body: JSON.stringify(payload)
             });
+
             if (res.ok) setStep(2);
             else {
                 const data = await res.json();
@@ -80,7 +96,7 @@ export default function Checkout() {
                     </div>
                     <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Sent for Review!</h2>
                     <p style={{ color: '#a1a1aa', marginBottom: '3rem', fontSize: '1.1rem' }}>
-                        Your payment proof has been submitted. Our admin will verify it within 2-4 hours and activate your <span style={{ color: 'white', fontWeight: 700 }}>{plan?.toUpperCase()}</span> plan.
+                        Your payment proof has been submitted. Our admin will verify it within 2-4 hours and {isWallet ? `credit Rs ${displayAmount} to your wallet.` : `activate your ${plan?.toUpperCase()} plan.`}
                     </p>
                     <Link href="/dashboard" className="btn btn-primary" style={{ width: '100%', padding: '1.2rem' }}>Go to Dashboard</Link>
                 </motion.div>
@@ -97,8 +113,10 @@ export default function Checkout() {
             <div className="checkout-grid">
                 {/* Left: Payment Options */}
                 <div>
-                    <h1 style={{ marginBottom: '0.5rem', fontSize: 'clamp(2rem, 5vw, 3rem)' }}>Checkout</h1>
-                    <p style={{ color: '#71717a', marginBottom: '3rem' }}>Secure your <span style={{ color: 'white', fontWeight: 600 }}>{plan?.toUpperCase()}</span> membership.</p>
+                    <h1 style={{ marginBottom: '0.5rem', fontSize: 'clamp(2rem, 5vw, 3rem)' }}>{isWallet ? 'Vault Recharge' : 'Checkout'}</h1>
+                    <p style={{ color: '#71717a', marginBottom: '3rem' }}>
+                        {isWallet ? `Injecting Rs ${displayAmount} into your Spatial Wallet.` : `Secure your ${plan?.toUpperCase()} membership.`}
+                    </p>
 
                     <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>Select Payment Method</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -177,7 +195,7 @@ export default function Checkout() {
                             <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '1rem', borderRadius: '1rem', border: '1px solid rgba(245, 158, 11, 0.2)', marginBottom: '2.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-start', textAlign: 'left' }}>
                                 <AlertCircle size={24} style={{ flexShrink: 0, color: '#f59e0b', marginTop: '3px' }} />
                                 <span style={{ fontSize: '0.85rem', color: '#fbbf24', fontWeight: 600 }}>
-                                    Please send <span style={{ fontSize: '1.1rem', fontWeight: 900 }}>NPR 1999</span> and upload the screenshot/statement below.
+                                    Please send <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#fff' }}>NPR {displayAmount}</span> and upload the screenshot/statement below.
                                 </span>
                             </div>
 

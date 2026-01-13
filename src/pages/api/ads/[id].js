@@ -64,13 +64,16 @@ export default async function handler(req, res) {
     if (method === 'PUT') {
         try {
             const sub = await Subscription.findOne({ userId });
-            const plan = (sub && sub.status === 'active') ? sub.plan : 'basic';
+            const isPro = sub && sub.status === 'active' && (sub.plan === 'pro' || sub.plan === 'enterprise');
 
-            const updateData = { ...req.body };
-            if (plan !== 'pro') {
-                delete updateData.category; // Don't allow category updates for non-pro
+            if (!isPro) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Campaign editing is a Pro feature. Upgrade to unlock full control! 🚀'
+                });
             }
 
+            const updateData = { ...req.body };
             const updatedAd = await Ad.findOneAndUpdate(
                 { _id: id, userId },
                 updateData,

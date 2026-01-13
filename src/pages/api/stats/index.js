@@ -44,10 +44,11 @@ export default async function handler(req, res) {
             });
         }
 
-        // 2. Fetch stats for the last 30 days
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        thirtyDaysAgo.setHours(0, 0, 0, 0);
+        // 2. Fetch stats for the last 30 days (Strict UTC)
+        const now = new Date();
+        const utcToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        const thirtyDaysAgo = new Date(utcToday);
+        thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
 
         const query = { userId, date: { $gte: thirtyDaysAgo } };
         if (adId && adId !== 'all') {
@@ -58,6 +59,15 @@ export default async function handler(req, res) {
 
         // 3. Aggregate deep analytics
         const aggregatedStats = {};
+
+        // Pre-populate with zeros for the last 30 days (Strict UTC)
+        for (let i = 0; i < 30; i++) {
+            const d = new Date(utcToday);
+            d.setUTCDate(d.getUTCDate() - i);
+            const ds = d.toISOString().split('T')[0];
+            aggregatedStats[ds] = { date: ds, views: 0, feedViews: 0, arViews: 0, hovers: 0, clicks: 0 };
+        }
+
         const hourlyEngagement = Array.from({ length: 24 }, (_, i) => ({ hour: i, views: 0, clicks: 0 }));
         const countryStats = {};
         const cityStats = {};
@@ -65,60 +75,67 @@ export default async function handler(req, res) {
 
         stats.forEach(s => {
             const dateStr = s.date.toISOString().split('T')[0];
-            if (!aggregatedStats[dateStr]) {
-                aggregatedStats[dateStr] = { date: dateStr, views: 0, feedViews: 0, arViews: 0, hovers: 0, clicks: 0 };
+            if (aggregatedStats[dateStr]) {
+                aggregatedStats[dateStr].views += s.views;
+                aggregatedStats[dateStr].feedViews += (s.feedViews || 0);
+                aggregatedStats[dateStr].arViews += (s.arViews || 0);
+                aggregatedStats[dateStr].hovers += s.hovers;
+                aggregatedStats[dateStr].clicks += s.clicks;
             }
-            aggregatedStats[dateStr].views += s.views;
-            aggregatedStats[dateStr].feedViews += (s.feedViews || 0);
-            aggregatedStats[dateStr].arViews += (s.arViews || 0);
-            aggregatedStats[dateStr].hovers += s.hovers;
-            aggregatedStats[dateStr].clicks += s.clicks;
 
             // Deep stats
             totalScreenTime += (s.totalScreenTime || 0);
 
             s.hourlyEngagement?.forEach(h => {
-                hourlyEngagement[h.hour].views += h.views;
-                hourlyEngagement[h.hour].clicks += h.clicks;
+                if (hourlyEngagement[h.hour]) {
+                    hourlyEngagement[h.hour].views += h.views;
+                    hourlyEngagement[h.hour].clicks += h.clicks;
+                }
             });
 
             s.countries?.forEach(c => {
-                countryStats[c.code] = (countryStats[c.code] || 0) + c.count;
+                if (c.count > 0) {
+                    countryStats[c.code] = (countryStats[c.code] || 0) + c.count;
+                }
             });
 
             s.cities?.forEach(c => {
-                cityStats[c.name] = (cityStats[c.name] || 0) + c.count;
+                if (c.count > 0) {
+                    cityStats[c.name] = (cityStats[c.name] || 0) + c.count;
+                }
             });
         });
 
-        // 4. Fetch totals (Filtered or Global)
+        // 4. Summarize period stats + Fetch Global Totals for context
         const adQuery = { userId };
         if (adId && adId !== 'all') {
             adQuery._id = adId;
         }
-
         const summaryAds = await Ad.find(adQuery);
-        // Also fetch ALL ads for the dropdown selector
         const dropdownAds = await Ad.find({ userId }).select('_id title imageUrl category').lean();
 
-        const totalViews = summaryAds.reduce((acc, ad) => acc + (ad.viewCount || 0), 0);
+        const periodViews = Object.values(aggregatedStats).reduce((acc, s) => acc + s.views, 0);
+        const periodClicks = Object.values(aggregatedStats).reduce((acc, s) => acc + s.clicks, 0);
+
+        // Use Global Counts if period is empty (provides better "immediate" feedback)
+        const lifetimeReach = summaryAds.reduce((acc, ad) => acc + (ad.viewCount || 0), 0);
+        const lifetimeClicks = summaryAds.reduce((acc, ad) => acc + (ad.clickCount || 0), 0);
+
         const summary = {
-            totalAds: summaryAds.length, // If filtered, this is 1
-            totalViews,
-            totalFeedViews: summaryAds.reduce((acc, ad) => acc + (ad.feedViewCount || 0), 0),
-            totalArViews: summaryAds.reduce((acc, ad) => acc + (ad.arViewCount || 0), 0),
-            totalHovers: summaryAds.reduce((acc, ad) => acc + (ad.hoverCount || 0), 0),
-            totalClicks: summaryAds.reduce((acc, ad) => acc + (ad.clickCount || 0), 0),
-            totalLikes: summaryAds.reduce((acc, ad) => acc + (ad.likes || 0), 0),
-            totalComments: summaryAds.reduce((acc, ad) => acc + (ad.comments?.length || 0), 0), // Basic count
-            totalShares: summaryAds.reduce((acc, ad) => acc + (ad.shares || 0), 0),
-            avgScreenTime: totalViews > 0 ? (totalScreenTime / totalViews).toFixed(1) : 0
+            totalAds: dropdownAds.length,
+            totalViews: periodViews || lifetimeReach, // Fallback to lifetime if period is 0
+            totalFeedViews: Object.values(aggregatedStats).reduce((acc, s) => acc + s.feedViews, 0) || summaryAds.reduce((acc, ad) => acc + (ad.feedViewCount || 0), 0),
+            totalArViews: Object.values(aggregatedStats).reduce((acc, s) => acc + s.arViews, 0) || summaryAds.reduce((acc, ad) => acc + (ad.arViewCount || 0), 0),
+            totalHovers: Object.values(aggregatedStats).reduce((acc, s) => acc + s.hovers, 0) || summaryAds.reduce((acc, ad) => acc + (ad.hoverCount || 0), 0),
+            totalClicks: periodClicks || lifetimeClicks,
+            avgScreenTime: (periodViews || lifetimeReach) > 0 ? (totalScreenTime / (periodViews || lifetimeReach)).toFixed(1) : 0,
+            isPeriodEmpty: periodViews === 0
         };
 
         return res.status(200).json({
             success: true,
             data: {
-                daily: Object.values(aggregatedStats),
+                daily: Object.values(aggregatedStats).sort((a, b) => a.date.localeCompare(b.date)),
                 hourly: hourlyEngagement,
                 geo: {
                     countries: Object.entries(countryStats).map(([code, count]) => ({ code, count })),
