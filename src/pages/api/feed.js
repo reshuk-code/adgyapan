@@ -78,9 +78,15 @@ export default async function handler(req, res) {
                         }
                     },
                     interestScore: {
-                        $switch: {
-                            branches: interestBranches,
-                            default: 0
+                        $let: {
+                            vars: { branches: interestBranches },
+                            in: {
+                                $cond: {
+                                    if: { $gt: [{ $size: '$$branches' }, 0] },
+                                    then: { $switch: { branches: '$$branches', default: 0 } },
+                                    else: 0
+                                }
+                            }
                         }
                     }
                 }
