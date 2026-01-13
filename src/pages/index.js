@@ -104,32 +104,102 @@ export default function LandingPage() {
             </section>
 
             {/* How It Works */}
-            <section style={{ padding: '8rem 2rem', background: 'var(--secondary)' }}>
+            <section style={{ padding: 'clamp(4rem, 8vh, 8rem) 2rem', background: 'var(--secondary)' }}>
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                     <h2 style={{ fontSize: '2.5rem', fontWeight: '900', textAlign: 'center', marginBottom: '4rem' }}>How It Works</h2>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '3rem' }}>
-                        {[
-                            { icon: <ScanLine size={40} color="#ff0080" />, title: "1. Scan QR", desc: "Users scan the QR code on your physical ad using their phone camera." },
-                            { icon: <Smartphone size={40} color="#7928ca" />, title: "2. Experience AR", desc: "A high-quality 3D video or interactive engagement instantly overlays on the real world." },
-                            { icon: <Zap size={40} color="#0070f3" />, title: "3. Convert", desc: "Direct users to your website, store, or profile with a single tap after the experience." }
-                        ].map((step, i) => (
-                            <motion.div
-                                key={i}
-                                whileHover={{ y: -10 }}
-                                style={{
-                                    background: 'var(--input)',
-                                    padding: '2.5rem',
-                                    borderRadius: '1.5rem',
-                                    border: '1px solid var(--border)',
-                                    textAlign: 'left'
-                                }}
-                            >
-                                <div style={{ marginBottom: '1.5rem', background: 'rgba(255,255,255,0.05)', width: 'fit-content', padding: '1rem', borderRadius: '1rem' }}>{step.icon}</div>
-                                <h3 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '1rem' }}>{step.title}</h3>
-                                <p style={{ color: '#888', lineHeight: 1.6 }}>{step.desc}</p>
-                            </motion.div>
-                        ))}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2rem',
+                        position: 'relative'
+                    }}>
+                        {/* Desktop Connector Line (Optional, simplified to individual arrows for responsiveness) */}
+                        <div className="how-it-works-grid" style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                            gap: '4rem',
+                            // alignItems: 'stretch' is default, ensures equal height
+                        }}>
+                            {[
+                                { icon: <ScanLine size={32} color="#ff0080" />, title: "1. Scan QR", desc: "Just point your camera. No app download needed." },
+                                { icon: <Smartphone size={32} color="#7928ca" />, title: "2. Experience", desc: "Watch the ad come to life in 3D right on your screen." },
+                                { icon: <Zap size={32} color="#0070f3" />, title: "3. Take Action", desc: "One tap to visit the site, buy, or follow." }
+                            ].map((step, i) => (
+                                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 30 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: i * 0.2, duration: 0.5 }}
+                                        style={{
+                                            background: 'rgba(255,255,255,0.03)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            padding: '2rem',
+                                            borderRadius: '1.5rem',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            textAlign: 'center',
+                                            width: '100%',
+                                            height: '100%', // Ensure card fills container for equal height
+                                            position: 'relative',
+                                            zIndex: 2
+                                        }}
+                                    >
+                                        <div style={{
+                                            width: '80px',
+                                            height: '80px',
+                                            borderRadius: '50%',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            marginBottom: '1.5rem',
+                                            boxShadow: '0 0 20px rgba(0,0,0,0.2)'
+                                        }}>
+                                            {step.icon}
+                                        </div>
+                                        <h3 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '0.5rem' }}>{step.title}</h3>
+                                        <p style={{ color: '#a1a1aa', lineHeight: 1.5, fontSize: '0.95rem' }}>{step.desc}</p>
+                                    </motion.div>
+
+                                    {/* Connector Arrow (Show for first two items) */}
+                                    {i < 2 && (
+                                        <motion.div
+                                            initial={{ opacity: 0, x: -20 }}
+                                            whileInView={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: 0.4 + (i * 0.2) }}
+                                            className="desktop-arrow"
+                                            style={{
+                                                position: 'absolute',
+                                                right: '-2.5rem',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                zIndex: 1,
+                                                color: 'rgba(255,255,255,0.2)'
+                                            }}
+                                        >
+                                            <ArrowRight size={32} />
+                                        </motion.div>
+                                    )}
+                                    {i < 2 && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -20 }}
+                                            whileInView={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.4 + (i * 0.2) }}
+                                            className="mobile-arrow"
+                                            style={{
+                                                marginTop: '1rem',
+                                                color: 'rgba(255,255,255,0.2)'
+                                            }}
+                                        >
+                                            <ArrowRight size={24} style={{ transform: 'rotate(90deg)' }} />
+                                        </motion.div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </section>

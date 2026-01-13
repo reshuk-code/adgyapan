@@ -54,7 +54,7 @@ export default function PricingSection({ showTitle = true }) {
         {
             name: 'Pro',
             price: 'NPR 1999',
-            period: '/mo',
+            period: '/yr',
             description: 'For power users and growing brands.',
             features: [
                 'Unlimited Campaigns',
@@ -89,7 +89,16 @@ export default function PricingSection({ showTitle = true }) {
     ];
 
     return (
-        <div className="container" style={{ paddingBottom: '5rem', maxWidth: '1200px' }}>
+        <div className="container" style={{
+            paddingBottom: '5rem',
+            maxWidth: '1200px',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto'
+        }}>
             {showTitle && (
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -106,7 +115,7 @@ export default function PricingSection({ showTitle = true }) {
                 </motion.div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', width: '100%' }}>
                 {plans.map((plan, index) => (
                     <motion.div
                         key={plan.name}
@@ -116,7 +125,7 @@ export default function PricingSection({ showTitle = true }) {
                         transition={{ delay: index * 0.1 }}
                         className="glass-card"
                         style={{
-                            padding: '3rem 2rem',
+                            padding: 'clamp(2.5rem, 5vh, 3rem) clamp(1.5rem, 4vw, 2rem)',
                             display: 'flex',
                             flexDirection: 'column',
                             position: 'relative',

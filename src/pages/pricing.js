@@ -56,7 +56,7 @@ export default function Pricing() {
         {
             name: 'Pro',
             price: 'NPR 1999',
-            period: '/mo',
+            period: '/yr',
             description: 'For power users and growing brands.',
             features: [
                 'Unlimited Campaigns',
@@ -93,13 +93,25 @@ export default function Pricing() {
     if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
 
     return (
-        <div className="container" style={{ paddingBottom: '7rem', maxWidth: '1200px' }}>
+        <div className="container" style={{
+            minHeight: '100vh',
+            width: '100%',
+            maxWidth: '1200px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingTop: '2rem',
+            paddingBottom: '7rem',
+            margin: '0 auto',
+            overflowX: 'hidden'
+        }}>
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                style={{ textAlign: 'center', marginBottom: '5rem' }}
+                style={{ textAlign: 'center', marginBottom: '3rem' }}
             >
-                <h1 style={{ fontSize: '4rem', fontWeight: 1000, marginBottom: '1rem', letterSpacing: '-2px' }}>
+                <h1 style={{ fontSize: '3.5rem', fontWeight: 1000, marginBottom: '1rem', letterSpacing: '-2px', lineHeight: 1.1 }}>
                     Choose Your <span style={{ color: '#fe2c55' }}>Power</span>.
                 </h1>
                 <p style={{ fontSize: '1.25rem', color: '#a1a1aa', maxWidth: '600px', margin: '0 auto' }}>
@@ -114,6 +126,7 @@ export default function Pricing() {
                     animate={{ scale: 1, opacity: 1 }}
                     className="glass-card"
                     style={{
+                        width: '100%',
                         maxWidth: '600px',
                         margin: '0 auto',
                         padding: '3rem',
@@ -160,7 +173,7 @@ export default function Pricing() {
                 </motion.div>
             ) : (
                 // Standard Pricing Cards
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', width: '100%' }}>
                     {plans.map((plan, index) => (
                         <motion.div
                             key={plan.name}
@@ -169,7 +182,7 @@ export default function Pricing() {
                             transition={{ delay: index * 0.1 }}
                             className="glass-card"
                             style={{
-                                padding: '3rem 2rem',
+                                padding: 'clamp(2.5rem, 5vh, 3rem) clamp(1.5rem, 4vw, 2rem)',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 position: 'relative',
