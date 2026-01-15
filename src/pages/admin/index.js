@@ -1,10 +1,38 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Head from 'next/head';
-import { Wallet, ShieldCheck, CreditCard, LayoutDashboard, ChevronRight } from 'lucide-react';
+import { Wallet, ShieldCheck, CreditCard, LayoutDashboard, ChevronRight, Mail, TrendingUp } from 'lucide-react';
 import { isAdmin } from '@/lib/admin';
 
 export default function AdminDashboard() {
+    const [pendingStats, setPendingStats] = useState({ kyc: 0, leads: 0 });
+    const [companyStats, setCompanyStats] = useState({ walletBalance: 0, totalRevenue: 0 });
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const [pendingRes, companyRes] = await Promise.all([
+                    fetch('/api/admin/stats/pending'),
+                    fetch('/api/admin/stats/company')
+                ]);
+
+                const pendingData = await pendingRes.json();
+                const companyData = await companyRes.json();
+
+                if (pendingData.success) {
+                    setPendingStats(pendingData.data.breakdown);
+                }
+                if (companyData.success) {
+                    setCompanyStats(companyData.data);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchStats();
+    }, []);
+
     const tools = [
         {
             title: 'Vault Verification',
@@ -18,7 +46,8 @@ export default function AdminDashboard() {
             desc: 'Verify user identities for marketplace access.',
             icon: <ShieldCheck size={24} />,
             link: '/admin/kyc',
-            color: '#10b981'
+            color: '#10b981',
+            badge: pendingStats.kyc
         },
         {
             title: 'Plan Subscriptions',
@@ -26,6 +55,22 @@ export default function AdminDashboard() {
             icon: <CreditCard size={24} />,
             link: '/admin/subscriptions',
             color: '#3b82f6'
+        },
+        {
+            title: 'Lead Database',
+            desc: 'View all captured leads from ads and platform.',
+            icon: <Mail size={24} />,
+            link: '/admin/leads',
+            color: '#8b5cf6',
+            badge: pendingStats.leads
+        },
+        {
+            title: 'Platform Revenue',
+            desc: `Total commission gathered from marketplace sales.`,
+            icon: <TrendingUp size={24} />,
+            link: '/admin/withdrawals', // Admin can see where money is going
+            color: '#f97316',
+            value: `Rs ${companyStats.walletBalance.toLocaleString()}`
         }
     ];
 
@@ -56,7 +101,8 @@ export default function AdminDashboard() {
                                     alignItems: 'center',
                                     gap: '2rem',
                                     cursor: 'pointer',
-                                    transition: 'all 0.3s'
+                                    transition: 'all 0.3s',
+                                    position: 'relative'
                                 }}
                             >
                                 <div style={{
@@ -67,9 +113,25 @@ export default function AdminDashboard() {
                                     {tool.icon}
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '0 0 4px', color: 'white' }}>{tool.title}</h3>
+                                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '0 0 4px', color: 'white', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        {tool.title}
+                                        {tool.badge > 0 && (
+                                            <span style={{
+                                                background: '#ef4444', color: 'white', fontSize: '0.8rem',
+                                                padding: '2px 8px', borderRadius: '12px', fontWeight: 900
+                                            }}>
+                                                {tool.badge} NEW
+                                            </span>
+                                        )}
+                                    </h3>
                                     <p style={{ margin: 0, opacity: 0.4, fontSize: '0.9rem' }}>{tool.desc}</p>
                                 </div>
+                                {tool.value && (
+                                    <div style={{ textAlign: 'right', marginRight: '1rem' }}>
+                                        <div style={{ fontSize: '0.7rem', fontWeight: 900, opacity: 0.4, textTransform: 'uppercase' }}>TREASURY</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: tool.color }}>{tool.value}</div>
+                                    </div>
+                                )}
                                 <ChevronRight size={20} opacity={0.3} />
                             </motion.div>
                         </Link>

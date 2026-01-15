@@ -38,5 +38,26 @@ export default async function handler(req, res) {
         }
     }
 
+    if (req.method === 'DELETE') {
+        try {
+            const { listingId } = req.body;
+            if (!listingId) return res.status(400).json({ error: 'Missing listingId' });
+
+            const listing = await AdMarketplace.findById(listingId);
+            if (!listing) return res.status(404).json({ error: 'Listing not found' });
+            if (listing.sellerId !== userId) return res.status(403).json({ error: 'Unauthorized' });
+
+            listing.status = 'closed';
+            await listing.save();
+
+            // Notify any active bidders that listing is closed [Optional but good UX]
+            // ... (could add notification loop here)
+
+            return res.status(200).json({ success: true, message: 'Listing closed successfully' });
+        } catch (error) {
+            return res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
     return res.status(405).json({ success: false, error: 'Method not allowed' });
 }

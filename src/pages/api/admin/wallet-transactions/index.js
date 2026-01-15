@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     await dbConnect();
 
     try {
-        const transactions = await WalletTransaction.find({ type: 'topup' }).sort({ createdAt: -1 });
+        const transactions = await WalletTransaction.find().sort({ createdAt: -1 });
         return res.status(200).json({ success: true, data: transactions });
     } catch (error) {
         return res.status(500).json({ success: false, error: error.message });

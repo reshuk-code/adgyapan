@@ -91,6 +91,22 @@ export default function AdView() {
 
             <Script id="ar-ready-check" strategy="afterInteractive">
                 {`
+            AFRAME.registerComponent('glitch', {
+                schema: {enabled: {type: 'boolean', default: false}},
+                tick: function (time, timeDelta) {
+                    if (!this.data.enabled) return;
+                    if (Math.random() > 0.98) {
+                        this.el.setAttribute('position', {
+                            x: (Math.random() - 0.5) * 0.05,
+                            y: (Math.random() - 0.5) * 0.05,
+                            z: (Math.random() - 0.5) * 0.02
+                        });
+                    } else {
+                        this.el.setAttribute('position', {x: 0, y: 0, z: 0});
+                    }
+                }
+            });
+
             const checkAR = setInterval(() => {
                 if (window.MINDAR) {
                     clearInterval(checkAR);
@@ -164,6 +180,8 @@ export default function AdView() {
                                 position={`${overlay.positionX || 0} ${overlay.positionY || 0} 0`}
                                 rotation={`${overlay.rotationX || 0} ${overlay.rotationY || 0} ${overlay.rotation || 0}`}
                                 scale={`${overlay.scale || 1} ${overlay.scale || 1} 1`}
+                                animation={overlay.behavior === 'float' ? "property: position; to: 0 0.05 0; dur: 2000; dir: alternate; loop: true; easing: easeInOutSine" : (overlay.behavior === 'pulse' ? "property: scale; to: 1.05 1.05 1; dur: 1000; dir: alternate; loop: true; easing: easeInOutSine" : "")}
+                                glitch={`enabled: ${overlay.behavior === 'glitch'}`}
                             >
                                 <a-plane
                                     src="#vid"
@@ -172,6 +190,7 @@ export default function AdView() {
                                     width="1"
                                     opacity={overlay.opacity || 1}
                                     className="clickable"
+                                    material={overlay.preset === 'glass' ? "opacity: 0.8; transparent: true; roughness: 0" : (overlay.preset === 'frosted' ? "opacity: 0.9; transparent: true; roughness: 1" : "")}
                                     onClick={() => {
                                         const v = document.querySelector('#vid');
                                         if (v) {
@@ -181,6 +200,16 @@ export default function AdView() {
                                         }
                                     }}
                                 ></a-plane>
+
+                                {overlay.preset === 'neon' && (
+                                    <a-plane
+                                        position="0 0 -0.01"
+                                        width="1.05"
+                                        height={`${(1 / (overlay.aspectRatio || 1.777)) + 0.05}`}
+                                        material="color: #FFD700; shader: flat; opacity: 0.5; transparent: true"
+                                        animation="property: material.opacity; to: 1; dur: 500; dir: alternate; loop: true"
+                                    ></a-plane>
+                                )}
 
                                 {/* Spatial CTA Button */}
                                 {ad.ctaText && (

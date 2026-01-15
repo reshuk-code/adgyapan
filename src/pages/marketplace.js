@@ -394,21 +394,21 @@ export default function Marketplace() {
                                 <div style={{ padding: '4rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '3rem' }}>
                                         <div>
-                                            <h2 style={{ fontSize: '2.2rem', fontWeight: 800, margin: 0, letterSpacing: '-1.5px' }}>
-                                                {step === 1 && "Core Identity"}
-                                                {step === 2 && "Demographics"}
-                                                {step === 3 && "Verification"}
-                                                {step === 4 && "Final Seal"}
+                                            <h2 style={{ fontSize: '2.2rem', fontWeight: 800, margin: 0, letterSpacing: '-1.5px', color: '#fff' }}>
+                                                {step === 1 && "Start Verification"}
+                                                {step === 2 && "Personal Details"}
+                                                {step === 3 && "Identity Document"}
+                                                {step === 4 && "Final Review"}
                                             </h2>
-                                            <p style={{ color: 'rgba(255,255,255,0.4)', margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
-                                                {step === 1 && "Start your enrollment with primary contact details."}
-                                                {step === 2 && "Input your legal origin and residential residence."}
-                                                {step === 3 && "Attach your government-sanctioned identification."}
-                                                {step === 4 && "Complete biometric matching for full access."}
+                                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
+                                                {step === 1 && "Begin your enrollment with basic contact info."}
+                                                {step === 2 && "Provide your legal residence and nationality."}
+                                                {step === 3 && "Select and enter your government ID details."}
+                                                {step === 4 && "Upload a clear photo of your ID."}
                                             </p>
                                         </div>
-                                        <div style={{ background: 'rgba(255,215,0,0.05)', color: '#FFD700', padding: '8px 16px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 900, border: '1px solid rgba(255,215,0,0.1)' }}>
-                                            STAGE 0{step}
+                                        <div style={{ background: '#fff', color: '#000', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700 }}>
+                                            STEP {step} OF 4
                                         </div>
                                     </div>
 
@@ -417,24 +417,24 @@ export default function Marketplace() {
                                             <motion.div key="st1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                                     <div className="cyber-field">
-                                                        <label><UserCircle size={14} /> Official Full Name</label>
+                                                        <label><UserCircle size={14} /> Full Legal Name</label>
                                                         <input
-                                                            type="text" required placeholder="Legal Name as per ID"
+                                                            type="text" required placeholder="As shown on ID"
                                                             value={enrollmentData.legalName}
                                                             onChange={e => setEnrollmentData({ ...enrollmentData, legalName: e.target.value })}
                                                         />
                                                     </div>
                                                     <div className="cyber-field">
-                                                        <label><AlertCircle size={14} /> Secondary Matrix (Phone)</label>
+                                                        <label><AlertCircle size={14} /> Phone Number</label>
                                                         <input
-                                                            type="tel" required placeholder="+977..."
+                                                            type="tel" required placeholder="+91..."
                                                             value={enrollmentData.phone}
                                                             onChange={e => setEnrollmentData({ ...enrollmentData, phone: e.target.value })}
                                                         />
                                                     </div>
                                                 </div>
                                                 <button disabled={!enrollmentData.legalName || !enrollmentData.phone} onClick={() => setStep(2)} className="vault-button">
-                                                    Initialize Session <ChevronRight size={18} />
+                                                    Next Step <ChevronRight size={18} />
                                                 </button>
                                             </motion.div>
                                         )}
@@ -444,22 +444,22 @@ export default function Marketplace() {
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                                     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
                                                         <div className="cyber-field">
-                                                            <label><Clock size={14} /> Temporal Origin (DOB)</label>
+                                                            <label><Clock size={14} /> Date of Birth</label>
                                                             <input type="date" value={enrollmentData.dob} onChange={e => setEnrollmentData({ ...enrollmentData, dob: e.target.value })} />
                                                         </div>
                                                         <div className="cyber-field">
-                                                            <label><Globe size={14} /> Jurisdiction</label>
-                                                            <input type="text" placeholder="Nationality" value={enrollmentData.nationality} onChange={e => setEnrollmentData({ ...enrollmentData, nationality: e.target.value })} />
+                                                            <label><Globe size={14} /> Nationality</label>
+                                                            <input type="text" placeholder="e.g. Indian" value={enrollmentData.nationality} onChange={e => setEnrollmentData({ ...enrollmentData, nationality: e.target.value })} />
                                                         </div>
                                                     </div>
                                                     <div className="cyber-field">
-                                                        <label><MapPin size={14} /> Physical Coordinate (Address)</label>
-                                                        <textarea placeholder="Local street address..." value={enrollmentData.address} onChange={e => setEnrollmentData({ ...enrollmentData, address: e.target.value })} style={{ minHeight: '100px', resize: 'none' }} />
+                                                        <label><MapPin size={14} /> Residential Address</label>
+                                                        <textarea placeholder="Full street address..." value={enrollmentData.address} onChange={e => setEnrollmentData({ ...enrollmentData, address: e.target.value })} style={{ minHeight: '100px', resize: 'none' }} />
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '1rem' }}>
-                                                    <button onClick={() => setStep(1)} className="vault-button secondary">Abort</button>
-                                                    <button disabled={!enrollmentData.dob || !enrollmentData.nationality || !enrollmentData.address} onClick={() => setStep(3)} className="vault-button">Confirm Log <ChevronRight size={18} /></button>
+                                                    <button onClick={() => setStep(1)} className="vault-button secondary">Back</button>
+                                                    <button disabled={!enrollmentData.dob || !enrollmentData.nationality || !enrollmentData.address} onClick={() => setStep(3)} className="vault-button">Next Step <ChevronRight size={18} /></button>
                                                 </div>
                                             </motion.div>
                                         )}
@@ -468,21 +468,21 @@ export default function Marketplace() {
                                             <motion.div key="st3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                                     <div className="cyber-field">
-                                                        <label><Receipt size={14} /> Document Selection</label>
+                                                        <label><Receipt size={14} /> Document Type</label>
                                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                                                             {['NID', 'Passport', 'Driving License'].map(t => (
-                                                                <button key={t} onClick={() => setEnrollmentData({ ...enrollmentData, idType: t })} style={{ padding: '1rem', borderRadius: '12px', border: enrollmentData.idType === t ? '1px solid #FFD700' : '1px solid rgba(255,255,255,0.1)', background: enrollmentData.idType === t ? 'rgba(255,215,0,0.1)' : 'transparent', color: enrollmentData.idType === t ? '#FFD700' : 'rgba(255,255,255,0.4)', fontWeight: 800, fontSize: '0.7rem' }}>{t}</button>
+                                                                <button key={t} onClick={() => setEnrollmentData({ ...enrollmentData, idType: t })} style={{ padding: '1rem', borderRadius: '12px', border: enrollmentData.idType === t ? '1px solid #FFD700' : '1px solid rgba(255,255,255,0.1)', background: enrollmentData.idType === t ? 'rgba(255,215,0,0.1)' : 'transparent', color: enrollmentData.idType === t ? '#FFD700' : 'rgba(255,255,255,0.4)', fontWeight: 800, fontSize: '0.8rem' }}>{t}</button>
                                                             ))}
                                                         </div>
                                                     </div>
                                                     <div className="cyber-field">
-                                                        <label><ShieldAlert size={14} /> Serial Identification</label>
-                                                        <input type="text" placeholder="Reference #" value={enrollmentData.idNumber} onChange={e => setEnrollmentData({ ...enrollmentData, idNumber: e.target.value })} />
+                                                        <label><ShieldAlert size={14} /> Document Number</label>
+                                                        <input type="text" placeholder="Enter ID Number" value={enrollmentData.idNumber} onChange={e => setEnrollmentData({ ...enrollmentData, idNumber: e.target.value })} />
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '1rem' }}>
-                                                    <button onClick={() => setStep(2)} className="vault-button secondary">Go Back</button>
-                                                    <button disabled={!enrollmentData.idNumber} onClick={() => setStep(4)} className="vault-button">Commit Access <ChevronRight size={18} /></button>
+                                                    <button onClick={() => setStep(2)} className="vault-button secondary">Back</button>
+                                                    <button disabled={!enrollmentData.idNumber} onClick={() => setStep(4)} className="vault-button">Next Step <ChevronRight size={18} /></button>
                                                 </div>
                                             </motion.div>
                                         )}
@@ -491,7 +491,7 @@ export default function Marketplace() {
                                             <motion.div key="st4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                                     <div className="cyber-field">
-                                                        <label><Camera size={14} /> Biometric Visual Match</label>
+                                                        <label><Camera size={14} /> Upload Document Photo</label>
                                                         <input
                                                             type="file"
                                                             id="id-photo-upload"
@@ -500,7 +500,7 @@ export default function Marketplace() {
                                                             style={{ display: 'none' }}
                                                         />
                                                         <div
-                                                            style={{ height: '180px', border: '1px dashed rgba(255,215,0,0.3)', borderRadius: '20px', background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative' }}
+                                                            style={{ height: '180px', border: '1px dashed rgba(255,255,255,0.3)', borderRadius: '20px', background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative' }}
                                                             onClick={() => document.getElementById('id-photo-upload').click()}
                                                         >
                                                             {uploading ? (
@@ -511,17 +511,17 @@ export default function Marketplace() {
                                                                 <img src={enrollmentData.idImageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                             ) : (
                                                                 <div style={{ textAlign: 'center' }}>
-                                                                    <Camera size={40} className="gold-text" style={{ opacity: 0.3, marginBottom: '10px' }} />
-                                                                    <span style={{ display: 'block', opacity: 0.3, fontWeight: 900, fontSize: '0.65rem', letterSpacing: '1px' }}>CLICK TO UPLOAD SCAN</span>
+                                                                    <Camera size={40} style={{ opacity: 0.5, marginBottom: '10px', color: '#fff' }} />
+                                                                    <span style={{ display: 'block', opacity: 0.5, fontWeight: 700, fontSize: '0.75rem', color: '#fff' }}>Click to Upload</span>
                                                                 </div>
                                                             )}
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '1rem' }}>
-                                                    <button onClick={() => setStep(3)} className="vault-button secondary">Review Data</button>
+                                                    <button onClick={() => setStep(3)} className="vault-button secondary">Back</button>
                                                     <button disabled={!enrollmentData.idImageUrl || uploading} onClick={handleKycSubmit} className="vault-button" style={{ boxShadow: '0 0 30px rgba(255, 215, 0, 0.2)', flex: 1 }}>
-                                                        {loading ? 'SEALING...' : 'SEAL ENROLLMENT'} <ShieldCheck size={18} />
+                                                        {loading ? 'Submitting...' : 'Submit Verification'} <ShieldCheck size={18} />
                                                     </button>
                                                 </div>
                                             </motion.div>
@@ -695,25 +695,21 @@ export default function Marketplace() {
 
 
             {/* Wallet & Status Ribbon */}
-            <div style={{ background: 'rgba(255,215,0,0.05)', borderBottom: '1px solid rgba(255,215,0,0.1)', padding: '1rem 0' }}>
+            <div style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '1rem 0' }}>
                 <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ background: '#FFD700', color: '#000', padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900 }}>VERIFIED</div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>Authenticated Session: {userId.substring(0, 8)}</span>
+                        <div style={{ background: '#FFD700', color: '#000', padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700 }}>VERIFIED MEMBER</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Wallet size={16} className="gold-text" />
-                                <span style={{ fontSize: '1rem', fontWeight: 900, letterSpacing: '-0.5px' }}>Rs {(kycData.balance || 0).toLocaleString()}</span>
-                            </div>
-                            <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'rgba(255,215,0,0.5)', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pro Credit Included</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Wallet size={18} className="gold-text" />
+                            <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>Rs {(kycData.balance || 0).toLocaleString()}</span>
                         </div>
                         <button
                             onClick={() => setShowTopUp(true)}
-                            style={{ background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.2)', color: '#FFD700', padding: '6px 16px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+                            style={{ background: '#FFD700', border: 'none', color: '#000', padding: '8px 20px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
                         >
-                            TOP UP
+                            Add Funds
                         </button>
                     </div>
                 </div>
@@ -726,24 +722,19 @@ export default function Marketplace() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 1, ease: "easeOut" }}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', marginBottom: '1rem' }}>
-                            <div style={{ height: '1px', width: '60px', background: 'linear-gradient(90deg, transparent, #D4AF37)' }} />
-                            <Crown size={24} className="gold-text" />
-                            <div style={{ height: '1px', width: '60px', background: 'linear-gradient(270deg, transparent, #D4AF37)' }} />
-                        </div>
                         <h1 style={{
                             margin: 0,
-                            fontSize: 'clamp(3rem, 8vw, 6rem)',
-                            fontWeight: 400,
-                            letterSpacing: '2px',
+                            fontSize: 'clamp(3rem, 8vw, 5rem)',
+                            fontWeight: 700,
+                            letterSpacing: '-1px',
                             lineHeight: 1,
-                            fontFamily: "'Playfair Display', serif",
-                            textTransform: 'uppercase'
+                            fontFamily: "'Space Grotesk', sans-serif",
+                            marginBottom: '1rem'
                         }}>
-                            The <span className="gold-text" style={{ fontStyle: 'italic' }}>Royal</span> Exchange
+                            Premium Ad Marketplace
                         </h1>
-                        <p style={{ marginTop: '1.5rem', color: 'rgba(212, 175, 55, 0.6)', letterSpacing: '4px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
-                            Premium Spatial Ad Assets & Campaigns
+                        <p style={{ color: '#a1a1aa', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto' }}>
+                            Buy and sell high-performing AR ad spaces. Verified traffic, secure transactions.
                         </p>
                     </motion.div>
                 </div>
@@ -764,40 +755,28 @@ export default function Marketplace() {
                                     display: 'flex',
                                     flexDirection: 'column',
                                     gap: '1.5rem',
-                                    background: 'linear-gradient(135deg, rgba(15, 15, 15, 0.8) 0%, rgba(5, 5, 5, 0.9) 100%)',
-                                    backdropFilter: 'blur(20px)',
-                                    border: '1px solid rgba(212, 175, 55, 0.15)',
-                                    borderRadius: '32px',
+                                    background: '#111',
+                                    border: '1px solid #333',
+                                    borderRadius: '24px',
                                     position: 'relative',
-                                    overflow: 'hidden',
-                                    boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                                    overflow: 'hidden'
                                 }}
                             >
-                                {/* Noise Texture Layer */}
-                                <div style={{ position: 'absolute', inset: 0, filter: 'url(#cardNoise)', opacity: 0.03, pointerEvents: 'none' }} />
-
                                 <div style={{ position: 'relative', borderRadius: '20px', overflow: 'hidden', aspectRatio: '16/10' }}>
                                     <img src={listing.adId.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }} className="card-image" />
                                     <div style={{ position: 'absolute', top: '15px', right: '15px' }}>
-                                        <div style={{ background: 'rgba(0,0,0,0.85)', padding: '6px 12px', borderRadius: '30px', border: '1px solid rgba(212, 175, 55, 0.5)', color: '#D4AF37', fontSize: '0.65rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '5px', backdropFilter: 'blur(5px)' }}>
-                                            <Gem size={12} /> ESTATE
-                                        </div>
-                                    </div>
-                                    <div style={{ position: 'absolute', bottom: '15px', left: '15px' }}>
-                                        <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'rgba(255,255,255,0.5)', letterSpacing: '2px', background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '4px' }}>
-                                            VAULT-{(listing._id.substring(listing._id.length - 8)).toUpperCase()}
+                                        <div style={{ background: 'rgba(0,0,0,0.8)', padding: '6px 12px', borderRadius: '30px', color: '#fff', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', backdropFilter: 'blur(5px)' }}>
+                                            <Gem size={12} /> AD SLOT
                                         </div>
                                     </div>
                                 </div>
 
                                 <div style={{ padding: '0 0.5rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, fontFamily: "'Playfair Display', serif", letterSpacing: '-0.5px' }}>{listing.adId.title}</h3>
+                                        <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, letterSpacing: '-0.5px' }}>{listing.adId.title}</h3>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '10px', marginTop: '0.5rem', alignItems: 'center' }}>
-                                        <span style={{ color: 'rgba(212, 175, 55, 0.6)', fontSize: '0.65rem', fontWeight: 900, letterSpacing: '1px' }}>{listing.adId.category.toUpperCase()}</span>
-                                        <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
-                                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', fontWeight: 800 }}>TA-ID: {listing.adId._id.substring(0, 6)}</span>
+                                    <div style={{ display: 'flex', gap: '10px', marginTop: '0.8rem', alignItems: 'center' }}>
+                                        <span style={{ color: '#888', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', background: '#222', padding: '4px 8px', borderRadius: '4px' }}>{listing.adId.category}</span>
                                     </div>
                                 </div>
 
@@ -827,30 +806,30 @@ export default function Marketplace() {
             <AnimatePresence>
                 {selectedListing && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(20px)', zIndex: 3000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1.5rem' }}>
-                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} style={{ maxWidth: '550px', width: '100%', padding: '3rem', background: '#111', borderRadius: '40px', border: '1px solid rgba(255,215,0,0.2)' }}>
+                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} style={{ maxWidth: '550px', width: '100%', padding: '3rem', background: '#111', borderRadius: '40px', border: '1px solid #333' }}>
                             <button onClick={() => setSelectedListing(null)} style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><ArrowRight style={{ transform: 'rotate(-45deg)' }} /></button>
-                            <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '1.5rem' }}>Place Escrow Bid</h2>
-                            <div style={{ padding: '1.5rem', borderRadius: '20px', background: 'rgba(255,215,0,0.05)', marginBottom: '2rem' }}>
+                            <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1.5rem', fontFamily: "'Space Grotesk', sans-serif" }}>Place Bid</h2>
+                            <div style={{ padding: '1.5rem', borderRadius: '20px', background: 'rgba(255,255,255,0.05)', marginBottom: '2rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                                     <span style={{ opacity: 0.5 }}>Your Wallet</span>
-                                    <span style={{ fontWeight: 800 }}>Rs {(kycData.balance || 0).toLocaleString()}</span>
+                                    <span style={{ fontWeight: 700 }}>Rs {(kycData.balance || 0).toLocaleString()}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ opacity: 0.5 }}>Min Step</span>
-                                    <span className="gold-text" style={{ fontWeight: 800 }}>Rs {(selectedListing.currentHighestBid || selectedListing.basePrice) + 1}</span>
+                                    <span style={{ opacity: 0.5 }}>Minimum Bid</span>
+                                    <span style={{ fontWeight: 700, color: '#FFD700' }}>Rs {(selectedListing.currentHighestBid || selectedListing.basePrice) + 1}</span>
                                 </div>
                             </div>
                             <form onSubmit={handleBid}>
-                                <input type="number" required value={bidAmount} onChange={e => setBidAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,215,0,0.2)', padding: '1.5rem', borderRadius: '20px', color: 'white', fontSize: '1.5rem', fontWeight: 900, textAlign: 'center', marginBottom: '1.5rem' }} />
+                                <input type="number" required value={bidAmount} onChange={e => setBidAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '1.5rem', borderRadius: '20px', color: 'white', fontSize: '1.5rem', fontWeight: 700, textAlign: 'center', marginBottom: '1.5rem' }} />
                                 {error && <div style={{ color: '#ff4444', marginBottom: '1rem', fontWeight: 700 }}>{error}</div>}
                                 {success && <div style={{ color: '#00ff88', marginBottom: '1rem', fontWeight: 700 }}>{success}</div>}
-                                <button type="submit" className="premium-button" style={{ width: '100%', padding: '1.5rem', borderRadius: '20px' }}>COMMIT ESCROW BID</button>
+                                <button type="submit" className="premium-button" style={{ width: '100%', padding: '1.5rem', borderRadius: '20px', background: '#FFD700', color: 'black', fontWeight: 700, border: 'none', fontSize: '1rem' }}>CONFIRM BID</button>
                             </form>
                         </motion.div>
                     </motion.div>
                 )}
 
-                {/* TOP UP MODAL (PREMIUM OVERHAUL 2.0) */}
+                {/* TOP UP MODAL */}
                 {showTopUp && (
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -875,79 +854,61 @@ export default function Marketplace() {
                                 maxWidth: '540px',
                                 width: '100%',
                                 padding: '4rem 3.5rem',
-                                background: 'linear-gradient(165deg, #0d0d0d 0%, #050505 100%)',
+                                background: '#111',
                                 borderRadius: '48px',
-                                border: '1px solid rgba(255,215,0,0.25)',
-                                boxShadow: '0 50px 150px rgba(0,0,0,1), inset 0 0 40px rgba(255,215,0,0.03)',
+                                border: '1px solid #333',
+                                boxShadow: '0 50px 150px rgba(0,0,0,1)',
                                 position: 'relative',
                                 overflow: 'hidden'
                             }}
                         >
-                            {/* Decorative background element */}
-                            <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '40%', height: '40%', background: 'radial-gradient(circle, rgba(255,215,0,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-
                             <button
                                 onClick={() => setShowTopUp(false)}
-                                style={{ position: 'absolute', top: '2.5rem', right: '2.5rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s' }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                style={{ position: 'absolute', top: '2.5rem', right: '2.5rem', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s' }}
                             >
                                 <X size={20} />
                             </button>
 
                             <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-                                <motion.div
-                                    animate={{
-                                        boxShadow: ['0 0 20px rgba(255,215,0,0.1)', '0 0 40px rgba(255,215,0,0.3)', '0 0 20px rgba(255,215,0,0.1)']
-                                    }}
-                                    transition={{ repeat: Infinity, duration: 3 }}
-                                    style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)', width: '74px', height: '74px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.8rem', color: '#000' }}
-                                >
+                                <div style={{ background: '#FFD700', width: '74px', height: '74px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.8rem', color: '#000' }}>
                                     <Zap size={36} fill="black" />
-                                </motion.div>
-                                <h2 style={{ fontSize: '2.8rem', fontWeight: 950, marginBottom: '0.8rem', letterSpacing: '-0.04em', lineHeight: 1 }}>Boost Your <span className="gold-text">Vault</span></h2>
-                                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1rem', fontWeight: 500, letterSpacing: '-0.2px' }}>Choose a strategic credit injection for your session.</p>
+                                </div>
+                                <h2 style={{ fontSize: '2.5rem', fontWeight: 700, marginBottom: '0.8rem', letterSpacing: '-1px', fontFamily: "'Space Grotesk', sans-serif" }}>Add Funds</h2>
+                                <p style={{ color: '#888', fontSize: '1rem', fontWeight: 500 }}>Add balance to your wallet instantly.</p>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.2rem', marginBottom: '3rem' }}>
                                 {[500, 1000, 5000].map((amt, i) => (
                                     <motion.button
                                         key={amt}
-                                        whileHover={{ y: -8, boxShadow: '0 15px 40px rgba(0,0,0,0.4)' }}
+                                        whileHover={{ y: -4 }}
                                         whileTap={{ scale: 0.96 }}
                                         onClick={() => setTopUpAmount(amt.toString())}
                                         style={{
-                                            padding: '2rem 0.5rem',
-                                            borderRadius: '28px',
-                                            border: topUpAmount === amt.toString() ? '2px solid #FFD700' : '1px solid rgba(255,255,255,0.06)',
-                                            background: topUpAmount === amt.toString() ? 'rgba(255,215,0,0.08)' : 'rgba(255,255,255,0.02)',
+                                            padding: '1.5rem 0.5rem',
+                                            borderRadius: '20px',
+                                            border: topUpAmount === amt.toString() ? '2px solid #FFD700' : '1px solid #333',
+                                            background: topUpAmount === amt.toString() ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.03)',
                                             color: 'white',
                                             cursor: 'pointer',
-                                            transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
                                             display: 'flex',
                                             flexDirection: 'column',
                                             alignItems: 'center',
-                                            gap: '8px',
-                                            position: 'relative',
-                                            overflow: 'hidden'
+                                            gap: '4px',
                                         }}
                                     >
-                                        {topUpAmount === amt.toString() && <motion.div layoutId="glow" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 50%, rgba(255,215,0,0.1) 0%, transparent 80%)' }} />}
-                                        <span style={{ fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1.5px', opacity: topUpAmount === amt.toString() ? 0.8 : 0.3, color: topUpAmount === amt.toString() ? '#FFD700' : '#fff' }}>
-                                            {amt >= 5000 ? 'TITAN' : amt >= 1000 ? 'ELITE' : 'PRIME'}
-                                        </span>
-                                        <span style={{ fontWeight: 900, fontSize: '1.3rem', color: topUpAmount === amt.toString() ? '#FFD700' : 'white', letterSpacing: '-0.5px' }}>₹{amt}</span>
+                                        <span style={{ fontWeight: 700, fontSize: '1.2rem', color: topUpAmount === amt.toString() ? '#FFD700' : 'white' }}>₹{amt}</span>
                                     </motion.button>
                                 ))}
                             </div>
 
                             <form onSubmit={handleTopUp} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
                                 <div className="cyber-field" style={{ position: 'relative' }}>
-                                    <label style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.3)', letterSpacing: '1px' }}>
-                                        <ArrowRight size={14} className="gold-text" /> CUSTOM INJECTION
+                                    <label style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', fontWeight: 700, color: '#888' }}>
+                                        Custom Amount
                                     </label>
                                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                        <span style={{ position: 'absolute', left: '2rem', fontSize: '1.8rem', fontWeight: 900, color: 'rgba(255,255,255,0.2)' }}>₹</span>
+                                        <span style={{ position: 'absolute', left: '2rem', fontSize: '1.8rem', fontWeight: 700, color: '#666' }}>₹</span>
                                         <input
                                             type="number" required placeholder="0.00"
                                             value={topUpAmount} onChange={e => setTopUpAmount(e.target.value)}
@@ -955,48 +916,42 @@ export default function Marketplace() {
                                                 width: '100%',
                                                 textAlign: 'center',
                                                 fontSize: '2rem',
-                                                fontWeight: 950,
-                                                background: 'rgba(0,0,0,0.3)',
-                                                border: '1px solid rgba(255,215,0,0.15)',
+                                                fontWeight: 700,
+                                                background: '#000',
+                                                border: '1px solid #333',
                                                 padding: '1.8rem 1rem 1.8rem 3rem',
-                                                borderRadius: '30px',
+                                                borderRadius: '24px',
                                                 color: '#fff',
                                                 outline: 'none',
-                                                boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5)',
-                                                transition: 'all 0.3s'
                                             }}
-                                            onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,215,0,0.5)', e.currentTarget.style.background = 'rgba(0,0,0,0.5)')}
-                                            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,215,0,0.15)', e.currentTarget.style.background = 'rgba(0,0,0,0.3)')}
                                         />
                                     </div>
                                 </div>
 
                                 <motion.button
-                                    whileHover={{ scale: 1.02, boxShadow: '0 25px 60px rgba(255,215,0,0.3)' }}
+                                    whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
                                     type="submit"
                                     disabled={!topUpAmount}
-                                    className="vault-button"
                                     style={{
                                         width: '100%',
-                                        padding: '1.8rem',
-                                        background: 'linear-gradient(90deg, #FFD700 0%, #FFA500 100%)',
+                                        padding: '1.5rem',
+                                        background: '#FFD700',
                                         color: 'black',
-                                        boxShadow: '0 20px 50px rgba(255,215,0,0.2)',
-                                        borderRadius: '26px',
+                                        borderRadius: '20px',
                                         fontSize: '1rem',
-                                        fontWeight: 950,
-                                        letterSpacing: '0.5px',
-                                        textTransform: 'uppercase'
+                                        fontWeight: 700,
+                                        border: 'none',
+                                        cursor: 'pointer'
                                     }}
                                 >
-                                    AUTHENTICATE & CHECKOUT <ChevronRight size={22} style={{ marginLeft: '8px' }} />
+                                    PROCEED TO PAYMENT <ChevronRight size={20} style={{ marginLeft: '8px', verticalAlign: 'middle' }} />
                                 </motion.button>
 
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: 0.4 }}>
                                     <ShieldCheck size={14} />
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.5px' }}>
-                                        End-to-End Encrypted Verification
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>
+                                        Secure Payment Processing
                                     </span>
                                 </div>
                             </form>

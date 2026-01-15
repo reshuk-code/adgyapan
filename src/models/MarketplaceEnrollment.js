@@ -50,6 +50,7 @@ const MarketplaceEnrollmentSchema = new mongoose.Schema({
         default: Date.now,
     },
     reviewedAt: Date,
+    isRead: { type: Boolean, default: false },
 });
 
 // Force schema update in development

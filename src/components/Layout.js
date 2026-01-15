@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
-import { Search, Bell, Compass, X, TrendingUp, ShieldAlert } from 'lucide-react';
+import { Search, Bell, Compass, X, TrendingUp, ShieldAlert, Settings, Plus, Crown } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import MarketplaceIcon from './MarketplaceIcon';
 
@@ -25,20 +25,33 @@ const HamburgerIcon = ({ isOpen }) => (
 export default function Layout({ children, fullPage = false }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [isPro, setIsPro] = useState(false);
+    const [pendingItems, setPendingItems] = useState(0);
 
     useEffect(() => {
-        const checkAdmin = async () => {
+        const checkStatus = async () => {
             try {
+                // Check Admin & Profile
                 const res = await fetch('/api/user/kyc');
                 const data = await res.json();
                 if (data.success && data.data.isAdmin) {
                     setIsAdmin(true);
+                    const statsRes = await fetch('/api/admin/stats/pending');
+                    const statsData = await statsRes.json();
+                    if (statsData.success) setPendingItems(statsData.data.count);
+                }
+
+                // Check Subscription
+                const subRes = await fetch('/api/subscriptions/me');
+                const subData = await subRes.json();
+                if (subData.success && subData.data.plan === 'pro' && subData.data.status === 'active') {
+                    setIsPro(true);
                 }
             } catch (err) {
-                console.error('Admin check failed', err);
+                console.error('Status check failed', err);
             }
         };
-        checkAdmin();
+        checkStatus();
     }, []);
 
     const menuVariants = {
@@ -64,7 +77,7 @@ export default function Layout({ children, fullPage = false }) {
     return (
         <div className="layout" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
             <header className="navbar" style={{
-                position: 'fixed', // Fixed for all pages to ensure stability during menu open
+                position: 'fixed',
                 top: 0,
                 left: 0,
                 right: 0,
@@ -74,7 +87,6 @@ export default function Layout({ children, fullPage = false }) {
                 borderBottom: (fullPage || mobileMenuOpen) ? 'none' : '1px solid var(--border)',
                 backdropFilter: (fullPage || mobileMenuOpen) ? 'none' : 'blur(10px)',
                 zIndex: 2000,
-                height: '70px',
                 display: 'flex',
                 alignItems: 'center'
             }}>
@@ -87,7 +99,18 @@ export default function Layout({ children, fullPage = false }) {
                     justifyContent: 'space-between',
                     alignItems: 'center'
                 }}>
-                    <Link href="/" className="logo" onClick={() => setMobileMenuOpen(false)}>Adgyapan</Link>
+                    <Link href="/" className="brand-link" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+                        {isPro && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 200 }}
+                            >
+                                <Crown size={22} className="gold-text" fill="#FFD700" style={{ filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.5))' }} />
+                            </motion.div>
+                        )}
+                        <span className={`logo ${isPro ? 'pro-logo-text' : ''}`}>Adgyapan</span>
+                    </Link>
 
                     {/* Desktop Navigation */}
                     <nav className="nav-links desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
@@ -97,10 +120,34 @@ export default function Layout({ children, fullPage = false }) {
                             <Link href="/notifications" className="nav-link" title="Notifications"><Bell size={20} /></Link>
                             <Link href="/marketplace" className="nav-link" title="Marketplace"><MarketplaceIcon size={20} /></Link>
                             <Link href="/dashboard" className="nav-link">Dashboard</Link>
+                            <Link href="/dashboard/activities" className="nav-link">Ad Activities</Link>
                             {isAdmin && (
-                                <Link href="/admin" className="nav-link" style={{ color: '#FFD700', fontWeight: 800 }}>Admin</Link>
+                                <Link href="/admin" className="nav-link" style={{ color: '#FFD700', fontWeight: 800, position: 'relative' }}>
+                                    Admin
+                                    {pendingItems > 0 && (
+                                        <span style={{
+                                            position: 'absolute',
+                                            top: -5,
+                                            right: -10,
+                                            background: '#ef4444',
+                                            color: 'white',
+                                            fontSize: '0.6rem',
+                                            width: '16px',
+                                            height: '16px',
+                                            borderRadius: '50%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            {pendingItems}
+                                        </span>
+                                    )}
+                                </Link>
                             )}
-                            <Link href="/create" className="btn btn-primary" style={{ height: '2.2rem', padding: '0 1rem' }}>New Campaign</Link>
+                            <Link href="/create" className="premium-button" style={{ height: '2.5rem', padding: '0 1.5rem', fontSize: '0.8rem' }}>
+                                <Plus size={16} /> New Campaign
+                            </Link>
+                            <Link href="/settings" className="nav-link" title="Settings"><Settings size={20} /></Link>
                             <UserButton afterSignOutUrl="/" />
                         </SignedIn>
                         <SignedOut>
@@ -169,10 +216,33 @@ export default function Layout({ children, fullPage = false }) {
                                     <div className="dot" /> <span>Creator Dashboard</span>
                                 </Link>
                             </motion.div>
+                            <motion.div variants={itemVariants}>
+                                <Link href="/dashboard/activities" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+                                    <div className="dot" style={{ background: '#FFD700' }} /> <span>Ad Activities</span>
+                                </Link>
+                            </motion.div>
+                            <motion.div variants={itemVariants}>
+                                <Link href="/settings" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+                                    <Settings size={24} /> <span>Settings</span>
+                                </Link>
+                            </motion.div>
                             {isAdmin && (
                                 <motion.div variants={itemVariants}>
-                                    <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item" style={{ color: '#FFD700' }}>
-                                        <ShieldAlert size={24} /> <span>Admin Panel</span>
+                                    <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item" style={{ color: '#FFD700', position: 'relative' }}>
+                                        <ShieldAlert size={24} />
+                                        <span>Admin Panel</span>
+                                        {pendingItems > 0 && (
+                                            <span style={{
+                                                background: '#ef4444',
+                                                color: 'white',
+                                                fontSize: '0.7rem',
+                                                padding: '2px 8px',
+                                                borderRadius: '12px',
+                                                marginLeft: 'auto'
+                                            }}>
+                                                {pendingItems} New
+                                            </span>
+                                        )}
                                     </Link>
                                 </motion.div>
                             )}
@@ -206,9 +276,8 @@ export default function Layout({ children, fullPage = false }) {
                 )}
             </AnimatePresence>
 
-            <main className="main-content" style={{
+            <main className={`main-content ${fullPage ? 'full-page' : ''}`} style={{
                 flex: 1,
-                paddingTop: fullPage ? 0 : '70px',
                 paddingBottom: fullPage ? 0 : '4rem'
             }}>
                 {children}

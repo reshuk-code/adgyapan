@@ -5,6 +5,7 @@ import WalletTransaction from '@/models/WalletTransaction';
 import Subscription from '@/models/Subscription';
 import { getAuth } from '@clerk/nextjs/server';
 import { isAdmin } from '@/lib/admin';
+import { notifyAdmins } from '@/lib/notifications';
 
 export default async function handler(req, res) {
     try {
@@ -68,7 +69,8 @@ export default async function handler(req, res) {
                     kycStatus: currentStatus,
                     enrollment: enrollment,
                     walletBalance: Number(profile.walletBalance) || 0,
-                    isAdmin: isUserAdmin
+                    isAdmin: isUserAdmin,
+                    profile: profile // Include full profile for Settings page
                 }
             });
         }
@@ -86,6 +88,14 @@ export default async function handler(req, res) {
             );
 
             await Profile.findOneAndUpdate({ userId }, { kycStatus: 'pending' }, { upsert: true });
+
+            // Notify Admins
+            await notifyAdmins({
+                title: 'New KYC Submission',
+                message: `New verification request from ${data.legalName}`,
+                type: 'system_alert',
+                entityId: userId // Link to profile/enrollment
+            });
 
             return res.status(200).json({ success: true, message: 'Enrollment submitted.' });
         }

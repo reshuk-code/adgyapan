@@ -5,8 +5,29 @@ import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Upload, Zap, Eye, RotateCcw, Maximize, Palette, ChevronRight, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
-import { Crown, Lock, Info, PlusCircle, LayoutGrid } from 'lucide-react';
+import { Crown, Lock, Info, PlusCircle, LayoutGrid, Sparkles, Box, Wind, Moon } from 'lucide-react';
 import { INDUSTRY_TEMPLATES } from '@/components/IndustryTemplates';
+
+const AR_PRESETS = [
+    { id: 'standard', name: 'Standard', icon: <Box size={14} />, description: 'Clean overlay.' },
+    { id: 'glass', name: 'Glass', icon: <Sparkles size={14} />, description: 'Translucent blur.' },
+    { id: 'neon', name: 'Neon', icon: <Zap size={14} />, description: 'Glow borders.' },
+    { id: 'frosted', name: 'Frost', icon: <Wind size={14} />, description: 'Icy texture.' }
+];
+
+const AR_BEHAVIORS = [
+    { id: 'static', name: 'Static', description: 'Locked 3D.' },
+    { id: 'float', name: 'Float', description: 'Wave motion.' },
+    { id: 'pulse', name: 'Pulse', description: 'Breathing.' },
+    { id: 'glitch', name: 'Glitch', description: 'Digital bugs.' }
+];
+
+const AR_ENVIRONMENTS = [
+    { id: 'studio', name: 'Studio', description: 'Neutral.' },
+    { id: 'outdoor', name: 'Outdoor', description: 'Warm.' },
+    { id: 'night', name: 'Night', description: 'Cool.' },
+    { id: 'cyberpunk', name: 'Cyber', description: 'High energy.' }
+];
 
 const ensureAbsoluteUrl = (url) => {
     if (!url) return '';
@@ -66,7 +87,11 @@ export default function CreateCampaign() {
         rotationX: 0,
         rotationY: 0,
         positionX: 0,
-        positionY: 0
+        positionY: 0,
+        preset: 'standard',
+        behavior: 'float',
+        environment: 'studio',
+        showQR: true
     });
 
     const handleIndustrySelect = (industry) => {
@@ -180,7 +205,14 @@ export default function CreateCampaign() {
                     ctaScale: ctaSettings.scale,
                     ctaColor: ctaSettings.color,
                     ctaBorderRadius: ctaSettings.borderRadius,
-                    overlay,
+                    overlay: {
+                        ...overlay,
+                        // Ensure defaults if missing
+                        preset: overlay.preset || 'standard',
+                        behavior: overlay.behavior || 'float',
+                        environment: overlay.environment || 'studio',
+                        showQR: overlay.showQR ?? true
+                    },
                     ctaText: form.ctaText,
                     ctaUrl: form.ctaType === 'link' ? ensureAbsoluteUrl(form.ctaUrl) : form.ctaUrl,
                     ctaType: form.ctaType,
@@ -456,8 +488,8 @@ export default function CreateCampaign() {
 
                             <button
                                 onClick={handleSubmit}
-                                className="btn btn-primary"
-                                style={{ width: '100%', height: '4rem', fontSize: '1.1rem', fontWeight: 800 }}
+                                className="premium-button"
+                                style={{ width: '100%', height: '4rem', fontSize: '1.2rem', borderRadius: '16px' }}
                                 disabled={loading || !form.title || !form.image || !form.video}
                             >
                                 {loading ? (
@@ -576,7 +608,7 @@ export default function CreateCampaign() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '3rem' }}>
                         {[
                             { label: 'Scale Factor', key: 'scale', min: 0.1, max: 4, step: 0.05, unit: 'x' },
                             { label: 'Aspect Ratio', key: 'aspectRatio', min: 0.1, max: 3, step: 0.01, unit: ':1' },
@@ -614,6 +646,108 @@ export default function CreateCampaign() {
                                 <input type="number" className="input" step="0.05" value={overlay.positionY} onChange={(e) => setOverlay({ ...overlay, positionY: parseFloat(e.target.value) })} />
                             </div>
                         </div>
+                    </div>
+
+                    {/* AR Creative Studio */}
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '2.5rem' }}>
+                        <h4 style={{ margin: '0 0 1.5rem 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <Sparkles size={18} className="gold-text" /> AR Creative Studio
+                        </h4>
+
+                        {/* Preset Selection */}
+                        <div className="form-group">
+                            <label className="label" style={{ fontSize: '0.75rem' }}>Frame Overlay Preset</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+                                {AR_PRESETS.map((p) => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => setOverlay({ ...overlay, preset: p.id })}
+                                        style={{
+                                            padding: '12px 6px',
+                                            background: overlay.preset === p.id ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.02)',
+                                            border: `1px solid ${overlay.preset === p.id ? 'rgba(255,215,0,0.4)' : 'rgba(255,255,255,0.05)'}`,
+                                            borderRadius: '12px',
+                                            color: overlay.preset === p.id ? '#FFD700' : '#888',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}
+                                    >
+                                        {p.icon}
+                                        <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>{p.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Behavior Selection */}
+                        <div className="form-group">
+                            <label className="label" style={{ fontSize: '0.75rem' }}>Animation Behavior</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                {AR_BEHAVIORS.map((b) => (
+                                    <button
+                                        key={b.id}
+                                        onClick={() => setOverlay({ ...overlay, behavior: b.id })}
+                                        style={{
+                                            padding: '12px',
+                                            textAlign: 'left',
+                                            background: overlay.behavior === b.id ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.02)',
+                                            border: `1px solid ${overlay.behavior === b.id ? 'rgba(255,215,0,0.4)' : 'rgba(255,255,255,0.05)'}`,
+                                            borderRadius: '12px',
+                                            color: overlay.behavior === b.id ? '#fff' : '#888',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 800, fontSize: '0.8rem', color: overlay.behavior === b.id ? '#FFD700' : '#fff' }}>{b.name}</div>
+                                        <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>{b.description}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Environment Selection */}
+                        <div className="form-group">
+                            <label className="label" style={{ fontSize: '0.75rem' }}>Lighting Environment</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                {AR_ENVIRONMENTS.map((e) => (
+                                    <button
+                                        key={e.id}
+                                        onClick={() => setOverlay({ ...overlay, environment: e.id })}
+                                        style={{
+                                            padding: '12px',
+                                            textAlign: 'left',
+                                            background: overlay.environment === e.id ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.02)',
+                                            border: `1px solid ${overlay.environment === e.id ? 'rgba(255,215,0,0.4)' : 'rgba(255,255,255,0.05)'}`,
+                                            borderRadius: '12px',
+                                            color: overlay.environment === e.id ? '#fff' : '#888',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 800, fontSize: '0.8rem', color: overlay.environment === e.id ? '#FFD700' : '#fff' }}>{e.name}</div>
+                                        <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>{e.description}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Options */}
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <input
+                                type="checkbox"
+                                checked={overlay.showQR}
+                                onChange={(e) => setOverlay({ ...overlay, showQR: e.target.checked })}
+                                style={{ width: '18px', height: '18px' }}
+                            />
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>Mobile AR Continuity</span>
+                                <span style={{ fontSize: '0.6rem', color: '#71717a' }}>Enable "Scan to Mobile" QR code in the embed.</span>
+                            </div>
+                        </label>
                     </div>
 
                     {/* CTA Spatial Control */}

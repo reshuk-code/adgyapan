@@ -49,6 +49,23 @@ const AdMarketplaceSchema = new mongoose.Schema({
     expiryDate: {
         type: Date,
     },
+    // Buyer Takeover Fields
+    buyerCtaUrl: String,
+    buyerCtaText: String,
+    buyerCtaType: {
+        type: String,
+        enum: ['link', 'phone', 'email', 'lead_form'],
+        default: 'link'
+    },
+    buyerLeadFormFields: [String], // ['name', 'email', 'phone', 'message', 'company']
+    currentEarnings: {
+        type: Number,
+        default: 0
+    },
+    leadsCount: {
+        type: Number,
+        default: 0
+    },
     createdAt: {
         type: Date,
         default: Date.now,

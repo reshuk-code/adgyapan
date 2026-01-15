@@ -9,7 +9,11 @@ export default function AdminKYC() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchEnrollments();
+        const init = async () => {
+            await fetchEnrollments();
+            markAsRead();
+        };
+        init();
     }, []);
 
     const fetchEnrollments = async () => {
@@ -18,6 +22,16 @@ export default function AdminKYC() {
             const data = await res.json();
             if (data.success) setEnrollments(data.data);
             setLoading(false);
+        } catch (err) { console.error(err); }
+    };
+
+    const markAsRead = async () => {
+        try {
+            await fetch('/api/admin/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'kyc' })
+            });
         } catch (err) { console.error(err); }
     };
 

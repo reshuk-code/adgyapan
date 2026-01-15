@@ -8,7 +8,7 @@ const WalletTransactionSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['topup', 'subscription_bonus', 'bid_deduction', 'bid_refund', 'milestone_payout', 'escrow_release'],
+        enum: ['topup', 'subscription_bonus', 'bid_deduction', 'bid_refund', 'milestone_payout', 'escrow_release', 'bid_hold', 'payout', 'fee', 'earnings', 'withdrawal'],
         required: true,
     },
     amount: {

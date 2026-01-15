@@ -32,6 +32,10 @@ const AdSchema = new mongoose.Schema({
         rotationY: { type: Number, default: 0 },
         positionX: { type: Number, default: 0 },
         positionY: { type: Number, default: 0 },
+        preset: { type: String, enum: ['standard', 'glass', 'neon', 'frosted'], default: 'standard' },
+        behavior: { type: String, enum: ['static', 'float', 'pulse', 'glitch'], default: 'float' },
+        environment: { type: String, enum: ['studio', 'outdoor', 'night', 'cyberpunk'], default: 'studio' },
+        showQR: { type: Boolean, default: true }
     },
     category: {
         type: String,
@@ -44,6 +48,13 @@ const AdSchema = new mongoose.Schema({
     likes: { type: Number, default: 0 },
     likedBy: { type: [String], default: [] },
     shares: { type: Number, default: 0 },
+    referrers: {
+        type: [{
+            url: { type: String, required: true },
+            count: { type: Number, default: 1 }
+        }],
+        default: []
+    },
     comments: {
         type: [{
             userId: { type: String, required: true },

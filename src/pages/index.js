@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useAuth, UserButton } from '@clerk/nextjs';
+import { useAuth, UserButton, SignUpButton, SignInButton } from '@clerk/nextjs';
 import { ArrowRight, ScanLine, Smartphone, Zap, Play, LayoutGrid, Compass, ShieldCheck, Globe, Users, TrendingUp, CheckCircle2, Layers } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import PricingSection from '@/components/PricingSection';
@@ -61,123 +61,113 @@ export default function LandingPage() {
                 {/* 3D Background */}
                 <Background3D />
 
-                <div style={{ maxWidth: '1000px', zIndex: 10, position: 'relative' }}>
+                <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: '900px' }}>
                     <motion.div
-                        initial={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
                     >
                         <div style={{
-                            background: 'linear-gradient(90deg, #FFD700, #ff8c00)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            fontWeight: '900',
-                            fontSize: '0.85rem',
-                            letterSpacing: '4px',
-                            textTransform: 'uppercase',
-                            marginBottom: '1.5rem',
-                            opacity: 0.9
-                        }}>
-                            Next-Gen Advertising Engine
-                        </div>
-                    </motion.div>
-
-                    <motion.h1
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{
-                            opacity: 1,
-                            y: 0,
-                            rotateX: -mousePos.y * 0.5,
-                            rotateY: mousePos.x * 0.5,
-                            x: mousePos.x * 2,
-                            y: mousePos.y * 2
-                        }}
-                        transition={{
-                            rotateX: { type: 'spring', stiffness: 100, damping: 30 },
-                            rotateY: { type: 'spring', stiffness: 100, damping: 30 },
-                            x: { type: 'spring', stiffness: 50, damping: 20 },
-                            y: { type: 'spring', stiffness: 50, damping: 20 },
-                            opacity: { delay: 0.2, duration: 0.8 },
-                            y: { delay: 0.2, duration: 0.8 }
-                        }}
-                        style={{
-                            fontSize: 'clamp(3.5rem, 10vw, 6rem)',
-                            fontWeight: '900',
-                            lineHeight: 0.95,
+                            display: 'inline-block',
+                            padding: '0.5rem 1.5rem',
+                            borderRadius: '100px',
+                            background: 'rgba(255, 215, 0, 0.1)',
+                            border: '1px solid rgba(255, 215, 0, 0.3)',
+                            color: '#FFD700',
+                            fontWeight: '700',
+                            fontSize: '0.8rem',
+                            letterSpacing: '1px',
                             marginBottom: '2rem',
-                            letterSpacing: '-4px',
-                            textShadow: '0 10px 30px rgba(0,0,0,0.5)',
-                            transformStyle: 'preserve-3d'
-                        }}
-                    >
-                        Make Your Ads <br />
-                        <span style={{
-                            background: 'linear-gradient(to bottom, #fff 30%, #a1a1aa 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent'
-                        }}>Come Alive.</span>
-                    </motion.h1>
+                            textTransform: 'uppercase'
+                        }}>
+                            From Print to Profit
+                        </div>
+                        <h1 style={{
+                            fontSize: 'clamp(3.5rem, 8vw, 6rem)',
+                            fontWeight: 900,
+                            lineHeight: 1,
+                            marginBottom: '1.5rem',
+                            letterSpacing: '-2px'
+                        }}>
+                            Turn Static Ads Into <br />
+                            <span style={{
+                                background: 'linear-gradient(135deg, #fff 0%, #a1a1aa 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent'
+                            }}>Sales Machines.</span>
+                        </h1>
+                    </motion.div>
 
                     <motion.p
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{
-                            opacity: 1,
-                            y: 0,
-                            x: mousePos.x * 1,
-                            y: mousePos.y * 1
-                        }}
-                        transition={{
-                            x: { type: 'spring', stiffness: 40, damping: 15 },
-                            y: { type: 'spring', stiffness: 40, damping: 15 },
-                            opacity: { delay: 0.4, duration: 0.8 },
-                            y: { delay: 0.4, duration: 0.8 }
-                        }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
                         style={{
                             fontSize: 'clamp(1.1rem, 2vw, 1.4rem)',
                             color: '#a1a1aa',
                             marginBottom: '3.5rem',
-                            lineHeight: 1.5,
-                            maxWidth: '750px',
-                            margin: '0 auto 3.5rem',
-                            fontWeight: 500
+                            lineHeight: 1.6,
+                            maxWidth: '700px',
+                            margin: '0 auto 3.5rem auto'
                         }}
                     >
-                        The world is your canvas. Turn static billboards into interactive
-                        <span style={{ color: '#fff', fontWeight: 700 }}> 3D dimensions </span>
-                        using proprietary high-fidelity spatial mapping.
+                        Don't let your flyers end up in the trash. Adgyapan transforms boring print marketing into interactive 3D experiences that <b>capture leads</b> and <b>drive real revenue</b>.
                     </motion.p>
 
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6 }}
-                        style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}
                     >
-                        {isSignedIn ? (
-                            <Link href="/dashboard" className="btn btn-primary" style={{ padding: '1.2rem 3rem', fontSize: '1.1rem', borderRadius: '12px', boxShadow: '0 20px 40px rgba(255, 215, 0, 0.2)' }}>
-                                Enter Control Center <ArrowRight size={20} />
+                        <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            {isSignedIn ? (
+                                <Link href="/dashboard" className="btn btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', borderRadius: '12px', boxShadow: '0 20px 40px rgba(255, 215, 0, 0.2)', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                    Enter Control Center <ArrowRight size={20} />
+                                </Link>
+                            ) : (
+                                <SignUpButton mode="modal">
+                                    <button className="btn btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', borderRadius: '12px', boxShadow: '0 20px 40px rgba(255, 215, 0, 0.2)', display: 'flex', alignItems: 'center', gap: '0.8rem', border: 'none', cursor: 'pointer' }}>
+                                        Launch Campaign <ArrowRight size={20} />
+                                    </button>
+                                </SignUpButton>
+                            )}
+
+                            <Link href="/lead-capture" style={{
+                                padding: '1rem 2.5rem',
+                                fontSize: '1.1rem',
+                                borderRadius: '12px',
+                                background: 'rgba(255,255,255,0.1)',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.8rem',
+                                textDecoration: 'none',
+                                fontWeight: '600',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                backdropFilter: 'blur(10px)',
+                                transition: 'all 0.3s ease'
+                            }}>
+                                Book Demo
                             </Link>
-                        ) : (
-                            <Link href="/sign-up" className="btn btn-primary" style={{ padding: '1.2rem 3rem', fontSize: '1.1rem', borderRadius: '12px', boxShadow: '0 20px 40px rgba(255, 215, 0, 0.2)' }}>
-                                Start Forging <ArrowRight size={20} />
-                            </Link>
-                        )}
+                        </div>
+
                         <Link href="/gallery" style={{
-                            padding: '1.2rem 3rem',
-                            fontSize: '1.1rem',
-                            borderRadius: '12px',
-                            background: 'rgba(255,255,255,0.03)',
-                            color: 'white',
+                            fontSize: '1rem',
+                            color: '#a1a1aa',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.8rem',
+                            gap: '0.6rem',
                             textDecoration: 'none',
-                            fontWeight: '700',
-                            backdropFilter: 'blur(20px)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            transition: 'all 0.3s ease'
-                        }}>
-                            <Compass size={20} /> Discover Exhibits
+                            fontWeight: '500',
+                            opacity: 0.8,
+                            transition: 'opacity 0.2s',
+                            borderBottom: '1px solid transparent'
+                        }}
+                            onMouseEnter={(e) => e.target.style.opacity = '1'}
+                            onMouseLeave={(e) => e.target.style.opacity = '0.8'}
+                        >
+                            <Compass size={18} /> Discover global exhibits in the gallery
                         </Link>
                     </motion.div>
                 </div>
@@ -191,7 +181,7 @@ export default function LandingPage() {
                         marginTop: '8rem',
                         width: '100%',
                         maxWidth: '1200px',
-                        padding: '3rem',
+                        padding: 'clamp(2rem, 5vw, 3rem)',
                         background: 'rgba(255,255,255,0.01)',
                         borderRadius: '32px',
                         border: '1px solid rgba(255,255,255,0.05)',
@@ -206,7 +196,7 @@ export default function LandingPage() {
                         gap: '3rem'
                     }}
                 >
-                    <div style={{ flex: '1', minWidth: '300px', zIndex: 2 }}>
+                    <div style={{ flex: '1 1 300px', zIndex: 2 }}>
                         <div style={{ color: '#00ff88', fontWeight: 900, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1rem' }}>Live Ecosystem</div>
                         <h2 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '1.5rem', letterSpacing: '-1px' }}>The Global Ad Feed.</h2>
                         <p style={{ color: '#a1a1aa', fontSize: '1rem', lineHeight: 1.6, marginBottom: '2.5rem', maxWidth: '500px' }}>
@@ -217,7 +207,7 @@ export default function LandingPage() {
                         </Link>
                     </div>
 
-                    <div style={{ flex: '1', minWidth: '300px', height: '250px', position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ flex: '1 1 300px', height: '250px', position: 'relative', display: 'flex', justifyContent: 'center', minWidth: '280px' }}>
                         {/* Abstract Feed Representation */}
                         {[1, 2, 3].map(i => (
                             <motion.div

@@ -56,6 +56,25 @@ export default async function handler(req, res) {
                 }
             },
             {
+                $lookup: {
+                    from: 'admarketplaces',
+                    localField: '_id',
+                    foreignField: 'adId',
+                    as: 'marketplaceListing'
+                }
+            },
+            {
+                $match: {
+                    $or: [
+                        { marketplaceListing: { $size: 0 } }, // No listing, keep it
+                        {
+                            'marketplaceListing.status': { $ne: 'expired' },
+                            'marketplaceListing.expiryDate': { $gte: new Date() }
+                        }
+                    ]
+                }
+            },
+            {
                 $addFields: {
                     userPlan: {
                         $let: {

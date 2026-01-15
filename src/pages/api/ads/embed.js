@@ -1,6 +1,7 @@
-import dbConnect from '@/lib/db';
 import AdMarketplace from '@/models/AdMarketplace';
 import Ad from '@/models/Ad';
+import Profile from '@/models/Profile';
+import WalletTransaction from '@/models/WalletTransaction';
 
 export default async function handler(req, res) {
     await dbConnect();
@@ -18,14 +19,48 @@ export default async function handler(req, res) {
     }
 
     try {
-        const listing = await AdMarketplace.findOneAndUpdate(
-            { apiKey, pin, status: 'sold' },
-            { $inc: { externalViews: 1 } },
-            { new: true }
-        ).populate('adId');
+        const listing = await AdMarketplace.findOne({ apiKey, pin, status: 'sold' }).populate('adId');
 
         if (!listing) {
             return res.status(401).json({ success: false, error: 'Invalid or unauthorized credentials' });
+        }
+
+        // Quota Enforcement
+        if (listing.externalViews >= listing.targetViews) {
+            return res.status(403).json({ success: false, error: 'Ad View Quota Reached. Please extend your contract or purchase a new slot.' });
+        }
+
+        // Increment views
+        listing.externalViews += 1;
+
+        // Calculate ROI-based Earnings: (Bid Amount / Target Views) * 1.5 profit multiplier
+        const totalBidAmount = listing.currentHighestBid || listing.basePrice;
+        const payoutPerView = (totalBidAmount / (listing.targetViews || 1)) * 1.5;
+        listing.currentEarnings += payoutPerView;
+
+        await listing.save();
+
+        // CREDIT BUYER'S WALLET
+        const buyerProfile = await Profile.findOne({ userId: listing.winnerId });
+        if (buyerProfile) {
+            buyerProfile.walletBalance += payoutPerView;
+            buyerProfile.totalEarned += payoutPerView;
+            await buyerProfile.save();
+
+            // Record transaction for this view (might be noisy, but user asked for detailed statements)
+            // Strategy: For views, we might want to batch, but for now individual or silent increment
+            // User requested: "show all incon, where the user had spended the money... from were user got that money.. and all statement info"
+            // To avoid flooding, maybe record once per session or just record it.
+            await WalletTransaction.create({
+                userId: listing.winnerId,
+                type: 'earnings',
+                amount: payoutPerView,
+                status: 'completed',
+                metadata: {
+                    listingId: listing._id,
+                    notes: `Ad view revenue for "${listing.adId?.title}"`
+                }
+            });
         }
 
         const ad = listing.adId;

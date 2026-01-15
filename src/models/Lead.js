@@ -4,11 +4,16 @@ const LeadSchema = new mongoose.Schema({
     adId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Ad',
-        required: [true, 'Ad reference is required']
+        required: false
     },
     userId: {
         type: String,
-        required: [true, 'Campaign owner user ID is required']
+        required: false
+    },
+    listingId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AdMarketplace',
+        required: false
     },
     leadData: {
         name: { type: String },
@@ -19,7 +24,7 @@ const LeadSchema = new mongoose.Schema({
     },
     source: {
         type: String,
-        enum: ['ar_view', 'feed_view', 'embed'],
+        enum: ['ar_view', 'feed_view', 'embed', 'website', 'demo', 'referral', 'landing_page'],
         default: 'ar_view'
     },
     metadata: {
@@ -36,21 +41,8 @@ const LeadSchema = new mongoose.Schema({
         type: String,
         maxlength: 500
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
-    }
-});
-
-// Update the updatedAt timestamp on save
-LeadSchema.pre('save', function (next) {
-    this.updatedAt = Date.now();
-    next();
-});
+    isRead: { type: Boolean, default: false }
+}, { timestamps: true });
 
 // Index for faster queries
 LeadSchema.index({ userId: 1, createdAt: -1 });

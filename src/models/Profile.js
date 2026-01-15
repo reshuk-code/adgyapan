@@ -25,6 +25,16 @@ const ProfileSchema = new mongoose.Schema({
         type: String,
         default: '',
     },
+    avatarUrl: {
+        type: String,
+        default: '',
+    },
+    notifications: {
+        email: { type: Boolean, default: true },
+        push: { type: Boolean, default: false },
+        sms: { type: Boolean, default: false },
+        marketing: { type: Boolean, default: true },
+    },
     // KYC Fields
     kycStatus: {
         type: String,

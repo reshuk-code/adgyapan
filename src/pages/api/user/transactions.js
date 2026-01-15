@@ -1,6 +1,5 @@
 import dbConnect from '@/lib/db';
-import AdMarketplace from '@/models/AdMarketplace';
-import Ad from '@/models/Ad';
+import WalletTransaction from '@/models/WalletTransaction';
 import { getAuth } from '@clerk/nextjs/server';
 
 export default async function handler(req, res) {
@@ -13,18 +12,10 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
         try {
-            // Fetch ads purchased by this user
-            const purchases = await AdMarketplace.find({
-                winnerId: userId,
-                status: 'sold'
-            })
-                .populate('adId')
-                .sort({ createdAt: -1 });
-
-            return res.status(200).json({
-                success: true,
-                data: purchases
-            });
+            const transactions = await WalletTransaction.find({ userId })
+                .sort({ createdAt: -1 })
+                .limit(50);
+            return res.status(200).json({ success: true, data: transactions });
         } catch (error) {
             return res.status(500).json({ success: false, error: error.message });
         }
