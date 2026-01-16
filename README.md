@@ -71,7 +71,7 @@ Ads are served via a highly optimized `<iframe />` embed system that requires cr
 Embeds are unique to the syndication partner's API Key and Campaign PIN.
 ```html
 <iframe 
-  src="https://adgyapan.com/embed?apiKey=YOUR_KEY&pin=CAMPAIGN_PIN" 
+  src="https://adgyapan.vercel.app/embed?apiKey=YOUR_KEY&pin=CAMPAIGN_PIN" 
   width="600" 
   height="400" 
   frameborder="0" 
