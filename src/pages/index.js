@@ -133,18 +133,19 @@ export default function LandingPage() {
                                 </SignUpButton>
                             )}
 
+
                             <Link href="/lead-capture" style={{
                                 padding: '1rem 2.5rem',
                                 fontSize: '1.1rem',
                                 borderRadius: '12px',
-                                background: 'rgba(255,255,255,0.1)',
+                                background: 'rgba(255,255,255,0.05)',
                                 color: 'white',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '0.8rem',
                                 textDecoration: 'none',
                                 fontWeight: '600',
-                                border: '1px solid rgba(255,255,255,0.2)',
+                                border: '1px solid rgba(255,255,255,0.1)',
                                 backdropFilter: 'blur(10px)',
                                 transition: 'all 0.3s ease'
                             }}>

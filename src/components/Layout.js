@@ -33,22 +33,28 @@ export default function Layout({ children, fullPage = false }) {
             try {
                 // Check Admin & Profile
                 const res = await fetch('/api/user/kyc');
-                const data = await res.json();
-                if (data.success && data.data.isAdmin) {
-                    setIsAdmin(true);
-                    const statsRes = await fetch('/api/admin/stats/pending');
-                    const statsData = await statsRes.json();
-                    if (statsData.success) setPendingItems(statsData.data.count);
+                if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
+                    const data = await res.json();
+                    if (data.success && data.data.isAdmin) {
+                        setIsAdmin(true);
+                        const statsRes = await fetch('/api/admin/stats/pending');
+                        if (statsRes.ok && statsRes.headers.get('content-type')?.includes('application/json')) {
+                            const statsData = await statsRes.json();
+                            if (statsData.success) setPendingItems(statsData.data.count);
+                        }
+                    }
                 }
 
                 // Check Subscription
                 const subRes = await fetch('/api/subscriptions/me');
-                const subData = await subRes.json();
-                if (subData.success && subData.data.plan === 'pro' && subData.data.status === 'active') {
-                    setIsPro(true);
+                if (subRes.ok && subRes.headers.get('content-type')?.includes('application/json')) {
+                    const subData = await subRes.json();
+                    if (subData.success && subData.data.plan === 'pro' && subData.data.status === 'active') {
+                        setIsPro(true);
+                    }
                 }
             } catch (err) {
-                console.error('Status check failed', err);
+                console.warn('Silent status check failure:', err.message);
             }
         };
         checkStatus();

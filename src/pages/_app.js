@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { useRouter } from "next/router";
 import NotificationManager from "@/components/NotificationManager";
 import { Toaster } from 'react-hot-toast';
+import Script from 'next/script';
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
@@ -11,23 +12,33 @@ export default function App({ Component, pageProps }) {
   const isEmbedPage = router.pathname === "/embed";
   const isHomePage = router.pathname === "/";
 
-  if (isAdPage || isEmbedPage) {
-    return (
-      <ClerkProvider>
-        <NotificationManager />
-        <Toaster position="top-right" />
-        <Component {...pageProps} />
-      </ClerkProvider>
-    );
-  }
+  const isARPage = router.pathname.startsWith("/ad/") || router.pathname === "/ar-cam";
 
   return (
     <ClerkProvider>
+      {isARPage && (
+        <>
+          <Script
+            id="aframe-lib"
+            src="https://aframe.io/releases/1.4.2/aframe.min.js"
+            strategy="afterInteractive"
+          />
+          <Script
+            id="mindar-lib"
+            src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"
+            strategy="afterInteractive"
+          />
+        </>
+      )}
       <NotificationManager />
       <Toaster position="top-right" />
-      <Layout fullPage={router.pathname === '/feed'}>
+      {isAdPage || isEmbedPage ? (
         <Component {...pageProps} />
-      </Layout>
+      ) : (
+        <Layout fullPage={router.pathname === '/feed'}>
+          <Component {...pageProps} />
+        </Layout>
+      )}
     </ClerkProvider>
   );
 }

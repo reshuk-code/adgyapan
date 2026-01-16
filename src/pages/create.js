@@ -57,6 +57,16 @@ export default function CreateCampaign() {
     });
     const [mounted, setMounted] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
+    // Chroma Key State
+    const [chromaKey, setChromaKey] = useState({
+        enabled: false,
+        color: '#00FF00',
+        threshold: 0.4
+    });
+    // Multiple CTA Buttons State
+    const [ctaButtons, setCtaButtons] = useState([]);
+    const [showCtaButtons, setShowCtaButtons] = useState(true);
+
 
     useEffect(() => {
         setMounted(true);
@@ -217,7 +227,14 @@ export default function CreateCampaign() {
                     ctaUrl: form.ctaType === 'link' ? ensureAbsoluteUrl(form.ctaUrl) : form.ctaUrl,
                     ctaType: form.ctaType,
                     leadFormFields: form.leadFormFields,
-                    leadWebhook: form.leadWebhook
+                    leadWebhook: form.leadWebhook,
+                    // Chroma Key
+                    chromaKeyEnabled: chromaKey.enabled,
+                    chromaKeyColor: chromaKey.color,
+                    chromaKeyThreshold: chromaKey.threshold,
+                    // Multiple CTA Buttons
+                    ctaButtons: ctaButtons,
+                    showCtaButtons: showCtaButtons
                 }),
             });
 
@@ -483,8 +500,207 @@ export default function CreateCampaign() {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Chroma Key Configuration */}
+                                    <div className="glass-card" style={{ padding: '2rem', marginBottom: '2.5rem', background: 'rgba(59,130,246,0.03)', border: '1px solid rgba(59,130,246,0.1)' }}>
+                                        <h4 style={{ margin: '0 0 1.5rem 0', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <Sparkles size={18} style={{ color: '#3b82f6' }} /> Chroma Key (Transparency)
+                                        </h4>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                                            <div>
+                                                <div style={{ fontWeight: 800, fontSize: '0.9rem', marginBottom: '0.25rem' }}>Enable Transparent Background</div>
+                                                <div style={{ fontSize: '0.7rem', opacity: 0.5 }}>Remove solid color backgrounds from your video</div>
+                                            </div>
+                                            <button
+                                                onClick={() => setChromaKey({ ...chromaKey, enabled: !chromaKey.enabled })}
+                                                style={{
+                                                    width: '50px', height: '26px', borderRadius: '13px',
+                                                    background: chromaKey.enabled ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+                                                    position: 'relative', transition: 'all 0.3s', border: 'none', cursor: 'pointer'
+                                                }}
+                                            >
+                                                <motion.div
+                                                    animate={{ x: chromaKey.enabled ? 24 : 0 }}
+                                                    style={{ width: '22px', height: '22px', background: '#fff', borderRadius: '50%', position: 'absolute', top: '2px', left: '2px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
+                                                />
+                                            </button>
+                                        </div>
+
+                                        {chromaKey.enabled && (
+                                            <>
+                                                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                                    <label className="label">Chroma Key Color</label>
+                                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                                        <input
+                                                            type="color"
+                                                            value={chromaKey.color}
+                                                            onChange={(e) => setChromaKey({ ...chromaKey, color: e.target.value })}
+                                                            style={{ width: '60px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: '8px' }}
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            className="input"
+                                                            value={chromaKey.color}
+                                                            onChange={(e) => setChromaKey({ ...chromaKey, color: e.target.value })}
+                                                            style={{ flex: 1 }}
+                                                        />
+                                                    </div>
+                                                    <p style={{ fontSize: '0.7rem', color: '#71717a', marginTop: '0.5rem' }}>
+                                                        Select the color to make transparent (usually green #00FF00)
+                                                    </p>
+                                                </div>
+
+                                                <div className="form-group">
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                                        <label className="label" style={{ marginBottom: 0 }}>Threshold Sensitivity</label>
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'white' }}>
+                                                            {(chromaKey.threshold * 100).toFixed(0)}%
+                                                        </span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        className="input-range"
+                                                        min="0.1"
+                                                        max="1.0"
+                                                        step="0.05"
+                                                        value={chromaKey.threshold}
+                                                        onChange={(e) => setChromaKey({ ...chromaKey, threshold: parseFloat(e.target.value) })}
+                                                    />
+                                                    <p style={{ fontSize: '0.7rem', color: '#71717a', marginTop: '0.5rem' }}>
+                                                        Higher values remove more similar colors
+                                                    </p>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* Multiple CTA Buttons */}
+                                    <div className="glass-card" style={{ padding: '2rem', marginBottom: '2.5rem', background: 'rgba(16,185,129,0.03)', border: '1px solid rgba(16,185,129,0.1)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                            <h4 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <PlusCircle size={18} style={{ color: '#10b981' }} /> Multiple CTA Buttons
+                                            </h4>
+                                            <button
+                                                onClick={() => setShowCtaButtons(!showCtaButtons)}
+                                                style={{
+                                                    padding: '0.5rem 1rem',
+                                                    background: showCtaButtons ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)',
+                                                    border: `1px solid ${showCtaButtons ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                                                    borderRadius: '8px',
+                                                    color: showCtaButtons ? '#10b981' : '#71717a',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 700,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {showCtaButtons ? 'Visible' : 'Hidden'}
+                                            </button>
+                                        </div>
+
+                                        {ctaButtons.length < 5 && (
+                                            <button
+                                                onClick={() => {
+                                                    setCtaButtons([...ctaButtons, {
+                                                        text: 'Button ' + (ctaButtons.length + 1),
+                                                        url: '',
+                                                        type: 'link',
+                                                        positionX: 0,
+                                                        positionY: -0.5 - (ctaButtons.length * 0.2),
+                                                        scale: 0.15,
+                                                        color: '#FFD700',
+                                                        borderRadius: 4
+                                                    }]);
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '1rem',
+                                                    background: 'rgba(16,185,129,0.1)',
+                                                    border: '1px dashed rgba(16,185,129,0.3)',
+                                                    borderRadius: '12px',
+                                                    color: '#10b981',
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: 700,
+                                                    cursor: 'pointer',
+                                                    marginBottom: '1.5rem',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.5rem'
+                                                }}
+                                            >
+                                                <PlusCircle size={18} /> Add CTA Button ({ctaButtons.length}/5)
+                                            </button>
+                                        )}
+
+                                        {ctaButtons.length > 0 && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                {ctaButtons.map((button, index) => (
+                                                    <div key={index} className="glass-card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                                            <h5 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800 }}>Button {index + 1}</h5>
+                                                            <button
+                                                                onClick={() => setCtaButtons(ctaButtons.filter((_, i) => i !== index))}
+                                                                style={{
+                                                                    background: 'rgba(239,68,68,0.1)',
+                                                                    border: '1px solid rgba(239,68,68,0.3)',
+                                                                    color: '#ef4444',
+                                                                    padding: '0.25rem 0.75rem',
+                                                                    borderRadius: '6px',
+                                                                    fontSize: '0.7rem',
+                                                                    fontWeight: 700,
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        </div>
+
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                                                <label className="label" style={{ fontSize: '0.7rem' }}>Button Text</label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="input"
+                                                                    value={button.text}
+                                                                    onChange={(e) => {
+                                                                        const newButtons = [...ctaButtons];
+                                                                        newButtons[index].text = e.target.value;
+                                                                        setCtaButtons(newButtons);
+                                                                    }}
+                                                                    style={{ height: '2.5rem', fontSize: '0.8rem' }}
+                                                                />
+                                                            </div>
+                                                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                                                <label className="label" style={{ fontSize: '0.7rem' }}>Button URL</label>
+                                                                <input
+                                                                    type="url"
+                                                                    className="input"
+                                                                    value={button.url}
+                                                                    onChange={(e) => {
+                                                                        const newButtons = [...ctaButtons];
+                                                                        newButtons[index].url = e.target.value;
+                                                                        setCtaButtons(newButtons);
+                                                                    }}
+                                                                    style={{ height: '2.5rem', fontSize: '0.8rem' }}
+                                                                    placeholder="https://..."
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {ctaButtons.length === 0 && (
+                                            <p style={{ textAlign: 'center', color: '#71717a', fontSize: '0.85rem', padding: '2rem 0' }}>
+                                                No CTA buttons added yet. Click above to add your first button.
+                                            </p>
+                                        )}
+                                    </div>
                                 </>
                             )}
+
 
                             <button
                                 onClick={handleSubmit}

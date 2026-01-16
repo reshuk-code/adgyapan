@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -27,13 +26,33 @@ export default function AdView() {
     const [leadSubmitted, setLeadSubmitted] = useState(false);
 
     useEffect(() => {
-        // Polling to detect when scripts are loaded
+        // Professional Ready-Check System
         const interval = setInterval(() => {
-            if (window.AFRAME && window.MINDAR) {
+            if (window.AFRAME && window.AFRAME.systems['mindar-image-system']) {
+                // Register components once AFRAME is ready
+                if (!window.arComponentsRegistered) {
+                    window.AFRAME.registerComponent('glitch', {
+                        schema: { enabled: { type: 'boolean', default: false } },
+                        tick: function (time, timeDelta) {
+                            if (!this.data.enabled) return;
+                            if (Math.random() > 0.98) {
+                                this.el.setAttribute('position', {
+                                    x: (Math.random() - 0.5) * 0.05,
+                                    y: (Math.random() - 0.5) * 0.05,
+                                    z: (Math.random() - 0.5) * 0.02
+                                });
+                            } else {
+                                this.el.setAttribute('position', { x: 0, y: 0, z: 0 });
+                            }
+                        }
+                    });
+                    window.arComponentsRegistered = true;
+                }
+
                 setArReady(true);
                 clearInterval(interval);
             }
-        }, 500);
+        }, 100);
         return () => clearInterval(interval);
     }, []);
 
@@ -81,39 +100,11 @@ export default function AdView() {
     const overlay = ad.overlay || { scale: 1, opacity: 1, rotation: 0, positionX: 0, positionY: 0 };
 
     return (
-        <>
+        <div style={{ minHeight: '100vh', width: '100vw' }}>
             <Head>
                 <title>{ad.title}</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-                <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-                <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
             </Head>
-
-            <Script id="ar-ready-check" strategy="afterInteractive">
-                {`
-            AFRAME.registerComponent('glitch', {
-                schema: {enabled: {type: 'boolean', default: false}},
-                tick: function (time, timeDelta) {
-                    if (!this.data.enabled) return;
-                    if (Math.random() > 0.98) {
-                        this.el.setAttribute('position', {
-                            x: (Math.random() - 0.5) * 0.05,
-                            y: (Math.random() - 0.5) * 0.05,
-                            z: (Math.random() - 0.5) * 0.02
-                        });
-                    } else {
-                        this.el.setAttribute('position', {x: 0, y: 0, z: 0});
-                    }
-                }
-            });
-
-            const checkAR = setInterval(() => {
-                if (window.MINDAR) {
-                    clearInterval(checkAR);
-                }
-            }, 500);
-        `}
-            </Script>
 
             <div style={{ position: 'relative', height: '100vh', width: '100vw', overflow: 'hidden' }}>
 
@@ -122,10 +113,12 @@ export default function AdView() {
                 {arReady && (
                     <a-scene
                         mindar-image={`imageTargetSrc: ${ad.targetUrl}; filterMinCF:0.0005; filterBeta: 0.005; missTolerance: 5;`}
+                        embedded
                         color-space="sRGB"
                         renderer="colorManagement: true, physicallyCorrectLights"
                         vr-mode-ui="enabled: false"
                         device-orientation-permission-ui="enabled: false"
+                        background="transparent: true"
                     >
                         <a-assets>
                             <video
@@ -363,7 +356,8 @@ export default function AdView() {
                                     maxWidth: '450px',
                                     width: '100%',
                                     border: '1px solid rgba(255,255,255,0.1)',
-                                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+                                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                                    position: 'relative'
                                 }}
                             >
                                 {!leadSubmitted ? (
@@ -546,6 +540,7 @@ export default function AdView() {
                     )}
                 </AnimatePresence>
             </div>
-        </>
+        </div>
     );
 }
+

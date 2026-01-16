@@ -113,10 +113,57 @@ const AdSchema = new mongoose.Schema({
     ctaScale: { type: Number, default: 0.15 },
     ctaColor: { type: String, default: '#FFD700' },
     ctaBorderRadius: { type: Number, default: 4 },
+    // Multiple CTA Buttons
+    ctaButtons: {
+        type: [{
+            text: { type: String, maxlength: 20 },
+            url: { type: String },
+            type: {
+                type: String,
+                enum: ['link', 'lead_form', 'phone', 'email'],
+                default: 'link'
+            },
+            positionX: { type: Number, default: 0 },
+            positionY: { type: Number, default: -0.5 },
+            scale: { type: Number, default: 0.15 },
+            color: { type: String, default: '#FFD700' },
+            borderRadius: { type: Number, default: 4 }
+        }],
+        default: [],
+        validate: [arrayLimit, 'Cannot have more than 5 CTA buttons']
+    },
+    showCtaButtons: { type: Boolean, default: true },
+    // Thumbnail Hash for Duplicate Detection
+    thumbnailHash: { type: String, sparse: true },
+    // AR Camera Views
+    arCameraViewCount: { type: Number, default: 0 },
     createdAt: {
         type: Date,
         default: Date.now,
     },
+});
+
+// Validator for CTA buttons array limit
+function arrayLimit(val) {
+    return val.length <= 5;
+}
+
+// Pre-save hook for thumbnail hash validation
+AdSchema.pre('save', async function () {
+    // Only check for duplicates if thumbnailHash is being set/modified
+    if (this.isModified('thumbnailHash') && this.thumbnailHash) {
+        const existingAd = await mongoose.models.Ad.findOne({
+            thumbnailHash: this.thumbnailHash,
+            _id: { $ne: this._id }
+        });
+
+        if (existingAd) {
+            const error = new Error('An ad with this thumbnail already exists. Please use a different thumbnail to avoid conflicts.');
+            error.code = 'DUPLICATE_THUMBNAIL';
+            throw error;
+        }
+    }
+
 });
 
 // Force schema update in development

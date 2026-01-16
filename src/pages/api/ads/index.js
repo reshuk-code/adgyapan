@@ -28,7 +28,13 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         try {
-            const { title, imageUrl, videoUrl, targetUrl, overlay, category, ctaText, ctaUrl, ctaPositionX, ctaPositionY, ctaScale, ctaColor, ctaBorderRadius } = req.body;
+            const {
+                title, imageUrl, videoUrl, targetUrl, overlay, category,
+                ctaText, ctaUrl, ctaType, ctaPositionX, ctaPositionY, ctaScale, ctaColor, ctaBorderRadius,
+
+                ctaButtons, showCtaButtons,
+                isPersistent, leadFormFields, leadWebhook
+            } = req.body;
 
             if (!title || !imageUrl || !videoUrl || !targetUrl) {
                 return res.status(400).json({ success: false, error: 'Missing required fields' });
@@ -47,6 +53,9 @@ export default async function handler(req, res) {
                     error: 'Campaign limit reached. Basic plan is limited to 3 active campaigns. Upgrade to Pro for unlimited storytelling! 🚀'
                 });
             }
+
+            // Generate thumbnail hash for duplicate detection
+            const thumbnailHash = crypto.createHash('md5').update(imageUrl).digest('hex');
 
             // Generate a random simple slug
             const slug = crypto.randomBytes(4).toString('hex'); // 8 chars
@@ -68,13 +77,22 @@ export default async function handler(req, res) {
                 videoUrl,
                 targetUrl,
                 overlay,
+                isPersistent,
+                // Legacy CTA fields (for backward compatibility)
                 ctaText,
                 ctaUrl,
+                ctaType,
                 ctaPositionX,
                 ctaPositionY,
                 ctaScale,
                 ctaColor,
                 ctaBorderRadius,
+                leadFormFields,
+                leadWebhook,
+                // New fields
+                ctaButtons: ctaButtons || [],
+                showCtaButtons: showCtaButtons !== undefined ? showCtaButtons : true,
+                thumbnailHash,
                 slug,
                 authorName,
                 authorAvatar,
@@ -83,6 +101,14 @@ export default async function handler(req, res) {
 
             return res.status(201).json({ success: true, data: ad });
         } catch (error) {
+            // Handle duplicate thumbnail error
+            if (error.code === 'DUPLICATE_THUMBNAIL') {
+                return res.status(409).json({
+                    success: false,
+                    error: error.message,
+                    code: 'DUPLICATE_THUMBNAIL'
+                });
+            }
             return res.status(500).json({ success: false, error: error.message });
         }
     }

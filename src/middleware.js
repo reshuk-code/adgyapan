@@ -13,7 +13,10 @@ const isProtectedRoute = createRouteMatcher([
 const isPublicRoute = createRouteMatcher([
     '/',
     '/api/ads/embed',
-    '/api/ads/public'
+    '/api/ads/public',
+    '/api/ads/ar-targets',
+    '/api/ads/by-thumbnail',
+    '/api/ads/(.*)/track-ar-camera-view'
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
